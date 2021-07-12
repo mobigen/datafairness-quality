@@ -1,0 +1,80 @@
+{
+    "rules": [
+        {
+            "column" : "status",
+            "rule" : "STATS"
+        },
+        {
+            "column" : "message",
+            "rule" : "KR_NAME"
+        },
+        {
+            "column" : "corp_code",
+            "rule" : "STATS"
+        },
+        {
+            "column" : "corp_name",
+            "rule" : "TEXT_KOR"
+        },
+        {
+            "column" : "corp_name_eng",
+            "rule" : "TEXT_ENG"
+        },
+        {
+            "column" : "stock_name",
+            "rule" : "TEXT_KOR" 
+        },
+        {
+            "column" : "stock_code",
+            "rule" : "STATS"
+        },
+        {
+            "column" : "ceo_nm",
+            "rule" : "KR_NAME"
+        },
+        {
+            "column" : "corp_cls",
+            "rule" : "STATS"
+        },
+        {
+            "column" : "jurir_no",
+            "rule" : "CORP_NO"
+        },
+        {
+            "column" : "bizr_no",
+            "rule" : "BIZ_NO"
+        },
+        {
+            "column" : "adres",
+            "rule" : "ADDRESS"
+        },
+        {
+            "column" : "hm_url",
+            "rule" : "URL"
+        },
+        {
+            "column" : "ir_url",
+            "rule" : "STATS"
+        },
+        {
+            "column" : "phn_no",
+            "rule" : "PHONE_1"
+        },
+        {
+            "column" : "fax_no",
+            "rule" : "PHONE_1"
+        },
+        {
+            "column" : "induty_code",
+            "rule" : "STATS"
+        },
+        {
+            "column" : "est_dt",
+            "rule" : "DATETIME_2"
+        },
+        {
+            "column" : "acc_mt",
+            "rule" : "MONTH_1"
+        }
+    ]
+}
