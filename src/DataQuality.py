@@ -27,11 +27,11 @@ class DataQuality:
     def __init__(self, file_path):
         self._df = pd.read_csv(file_path, header=0, dtype=str)
         self.table_stats = {"column_stats": []}
-  
+
     def _set_regex(self):
         config = configparser.ConfigParser()
         config.optionxform = str  # config.ini 구문 분석 시, 대문자->소문자 변환되는 동작 비활성화
-        config.read("config.ini", encoding="utf-8")
+        config.read("conf/config.ini", encoding="utf-8")
 
         regex = {}
         regex_compile = {}
@@ -135,8 +135,8 @@ class DataQuality:
 
         if int(corp_no[12]) == valid_no:
             return True
-        else:
-            print("Invalid Corporate Registration Number [{}]".format(corp_no))
+        #else:
+        #    print("Invalid Corporate Registration Number [{}]".format(corp_no))
         return False
 
     def _check_valid(self, regex_key, data):
@@ -240,7 +240,6 @@ class DataQuality:
     def _calc_missing_rate(self, missing_cnt, row_cnt):
         return missing_cnt / row_cnt
 
-
     def _calc_violation_rate(self, match_cnt, row_cnt):
         return (row_cnt - match_cnt) / row_cnt
 
@@ -278,12 +277,12 @@ class DataQuality:
         return uniqueness_violation_cnt / row_cnt
 
     def _get_quartile(self, unique_data_cnt):
-        MAX_QUARTILE = 10
+        max_quartile = 10
         quartile = unique_data_cnt / 2
         if quartile <= 1:
             quartile = 1
-        if quartile > MAX_QUARTILE:
-            quartile = MAX_QUARTILE
+        if quartile > max_quartile:
+            quartile = max_quartile
 
         return int(quartile)
 

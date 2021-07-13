@@ -56,11 +56,11 @@ class AutoDataQuality(DataQuality):
         data_dqi["missing_rate"] = self._calc_missing_rate(
             column_info["missing_count"], column_info["row_count"]
         )
-        
+
         data_dqi["type_missmatch_rate"] = self._calc_violation_rate(
             max_type_cnt, column_info["row_count"]
         )
-        
+
         data_dqi["pattern_mismatch_rate"] = self._calc_violation_rate(
             max_pattern_cnt, column_info["row_count"]
         )
@@ -73,7 +73,7 @@ class AutoDataQuality(DataQuality):
             ] = self._calc_uniqueness_violation_rate(
                 column_info["row_count"], col_stats
             )
-        
+
         if column_info["column_pattern"] in bin_regex:
             data_dqi["binary_violation_rate"] = self._calc_violation_rate(
                 max_pattern_cnt, column_info["row_count"]
@@ -83,7 +83,6 @@ class AutoDataQuality(DataQuality):
 
     def evaluation(self):
         table_dqi = {}
-
         regex, regex_compile, unique_regex, bin_regex, _ = self._set_regex()
 
         for column_name in self._df.columns:
