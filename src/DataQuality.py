@@ -135,7 +135,7 @@ class DataQuality:
 
         if int(corp_no[12]) == valid_no:
             return True
-        #else:
+        # else:
         #    print("Invalid Corporate Registration Number [{}]".format(corp_no))
         return False
 
@@ -310,12 +310,19 @@ class DataQuality:
         )
 
         column_info["data_pattern"] = {
-            sort_pattern[index][0]: sort_pattern[index][1]
+            sort_pattern[index][0]: "{} ({}%)".format(
+                sort_pattern[index][1],
+                int((sort_pattern[index][1] / col_stats.row_count) * 100),
+            )
             for index in range(len(sort_type))
         }
 
         column_info["data_type"] = {
-            sort_type[index][0]: sort_type[index][1] for index in range(len(sort_type))
+            sort_type[index][0]: "{} ({}%)".format(
+                sort_type[index][1],
+                int((sort_type[index][1] / col_stats.row_count) * 100),
+            )
+            for index in range(len(sort_type))
         }
 
         if col_stats.column_type == "STRING":
