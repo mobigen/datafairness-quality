@@ -26,7 +26,7 @@ class RuleDataQuailty(DataQuality):
             if set_name != "STATS" and set_name not in regex_set.keys():
                 print("undefined regex name. ({})".format(set_name))
                 return None
-            
+
             column_rule[column_name] = set_name
 
         return column_rule
@@ -51,7 +51,9 @@ class RuleDataQuailty(DataQuality):
 
         return pattern_stats
 
-    def _check_pattern(self, column, column_name, column_rule, regex_set, regex_compile):
+    def _check_pattern(
+        self, column, column_name, column_rule, regex_set, regex_compile
+    ):
         pattern_stats = {}
         set_name = column_rule[column_name]
 
@@ -66,7 +68,9 @@ class RuleDataQuailty(DataQuality):
                 continue
 
             for pattern_name in regex_set[set_name]:
-                result = self._regex_match(pattern_name, regex_compile[pattern_name], data)
+                result = self._regex_match(
+                    pattern_name, regex_compile[pattern_name], data
+                )
                 if result != None:
                     if self._check_valid(pattern_name, data) == False:
                         continue
@@ -79,7 +83,10 @@ class RuleDataQuailty(DataQuality):
     ):
         data_dqi = {}
 
-        if col_stats.column_pattern == "STATS":
+        if (
+            col_stats.missing_cnt == col_stats.row_count
+            or col_stats.column_pattern == "STATS"
+        ):
             return data_dqi
 
         max_pattern_cnt = sorted(
@@ -101,7 +108,7 @@ class RuleDataQuailty(DataQuality):
         sum_match_cnt = 0
         for match_cnt in col_stats.pattern_stats.values():
             sum_match_cnt += match_cnt
-        
+
         data_dqi["pattern_mismatch_rate"] = self._calc_violation_rate(
             sum_match_cnt, column_info["row_count"]
         )
@@ -134,7 +141,13 @@ class RuleDataQuailty(DataQuality):
     def evaluation(self, rules):
         table_dqi = {}
 
-        regex, regex_compile, regex_set, unique_regex, bin_regex, range_info = self._set_regex()
+        (
+            regex_compile,
+            regex_set,
+            unique_regex,
+            bin_regex,
+            range_info,
+        ) = self._set_regex()
 
         column_rule = self._set_rule(regex_set, rules)
         if column_rule == None:

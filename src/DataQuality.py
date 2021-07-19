@@ -42,7 +42,7 @@ class DataQuality:
 
         for pattern in config["COMMON_REGEX"]:
             regex[pattern] = config["COMMON_REGEX"][pattern]
-            
+
         for pattern in config["UNIQUE_REGEX"]:
             regex[pattern] = config["UNIQUE_REGEX"][pattern]
             unique_regex.append(pattern)
@@ -61,7 +61,7 @@ class DataQuality:
         for key, value in regex.items():
             regex_compile[key] = re.compile(value)
 
-        return regex, regex_compile, regex_set, unique_regex, bin_regex, range_info
+        return regex_compile, regex_set, unique_regex, bin_regex, range_info
 
     def _regex_match(self, regex_key, regex_compile, data):
         if (
@@ -246,7 +246,7 @@ class DataQuality:
             return missing_cnt / row_cnt
         except ZeroDivisionError:
             return 0
-            
+
     def _calc_violation_rate(self, match_cnt, row_cnt):
         try:
             return (row_cnt - match_cnt) / row_cnt
