@@ -64,7 +64,7 @@ class AutoDataQuality(DataQuality):
         data_dqi["pattern_mismatch_rate"] = self._calc_violation_rate(
             max_pattern_cnt, column_info["row_count"]
         )
-        
+
         # modify
         data_dqi["consistency_violation_rate"] = data_dqi["pattern_mismatch_rate"]
         data_dqi["outlier_ratio"] = self._calc_outlier_ratio(column_info, column)

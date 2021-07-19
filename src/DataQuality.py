@@ -242,10 +242,16 @@ class DataQuality:
         return number_stats, string_stats, common_stats, quartile_stats
 
     def _calc_missing_rate(self, missing_cnt, row_cnt):
-        return missing_cnt / row_cnt
-
+        try:
+            return missing_cnt / row_cnt
+        except ZeroDivisionError:
+            return 0
+            
     def _calc_violation_rate(self, match_cnt, row_cnt):
-        return (row_cnt - match_cnt) / row_cnt
+        try:
+            return (row_cnt - match_cnt) / row_cnt
+        except ZeroDivisionError:
+            return 0
 
     def _calc_outlier_ratio(self, column_info, column):
         outlier_cnt = 0
