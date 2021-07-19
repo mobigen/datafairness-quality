@@ -64,6 +64,8 @@ class AutoDataQuality(DataQuality):
         data_dqi["pattern_mismatch_rate"] = self._calc_violation_rate(
             max_pattern_cnt, column_info["row_count"]
         )
+        
+        # modify
         data_dqi["consistency_violation_rate"] = data_dqi["pattern_mismatch_rate"]
         data_dqi["outlier_ratio"] = self._calc_outlier_ratio(column_info, column)
 
@@ -83,7 +85,8 @@ class AutoDataQuality(DataQuality):
 
     def evaluation(self):
         table_dqi = {}
-        regex, regex_compile, unique_regex, bin_regex, _ = self._set_regex()
+        regex, regex_compile, regex_set, unique_regex, bin_regex, _ = self._set_regex()
+        print(regex_set)
 
         for column_name in self._df.columns:
             col_stats = ColumnStats()
@@ -98,6 +101,9 @@ class AutoDataQuality(DataQuality):
             col_stats.column_pattern = self._check_pattern(
                 col_stats.pattern_stats, column, regex_compile
             )
+
+            for set_name, pattern in regex_set.items():
+                print("{} : {}".format(set_name, pattern))
 
             (
                 col_stats.column_type,

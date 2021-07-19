@@ -35,13 +35,14 @@ class DataQuality:
 
         regex = {}
         regex_compile = {}
+        regex_set = {}
         unique_regex = []
         bin_regex = []
         range_info = {}
 
         for pattern in config["COMMON_REGEX"]:
             regex[pattern] = config["COMMON_REGEX"][pattern]
-
+            
         for pattern in config["UNIQUE_REGEX"]:
             regex[pattern] = config["UNIQUE_REGEX"][pattern]
             unique_regex.append(pattern)
@@ -50,6 +51,9 @@ class DataQuality:
             regex[pattern] = config["BIN_REGEX"][pattern]
             bin_regex.append(pattern)
 
+        for set_name in config["REGEX_SET"]:
+            regex_set[set_name] = config["REGEX_SET"][set_name].split(",")
+
         for pattern in config["RANGE"]:
             range = config["RANGE"][pattern].split(",")
             range_info[pattern] = {"min": int(range[0]), "max": int(range[1])}
@@ -57,7 +61,7 @@ class DataQuality:
         for key, value in regex.items():
             regex_compile[key] = re.compile(value)
 
-        return regex, regex_compile, unique_regex, bin_regex, range_info
+        return regex, regex_compile, regex_set, unique_regex, bin_regex, range_info
 
     def _regex_match(self, regex_key, regex_compile, data):
         if (
@@ -314,7 +318,7 @@ class DataQuality:
                 sort_pattern[index][1],
                 int((sort_pattern[index][1] / col_stats.row_count) * 100),
             )
-            for index in range(len(sort_type))
+            for index in range(len(sort_pattern))
         }
 
         column_info["data_type"] = {

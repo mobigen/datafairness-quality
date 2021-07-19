@@ -14,15 +14,15 @@
         },
         {
             "column" : "corp_name",
-            "rule" : "TEXT_KOR"
+            "rule" : "TEXT"
         },
         {
             "column" : "corp_name_eng",
-            "rule" : "TEXT_ENG"
+            "rule" : "TEXT"
         },
         {
             "column" : "stock_name",
-            "rule" : "TEXT_KOR" 
+            "rule" : "TEXT" 
         },
         {
             "column" : "stock_code",
@@ -58,11 +58,11 @@
         },
         {
             "column" : "phn_no",
-            "rule" : "PHONE_1"
+            "rule" : "PHONE"
         },
         {
             "column" : "fax_no",
-            "rule" : "PHONE_1"
+            "rule" : "PHONE"
         },
         {
             "column" : "induty_code",
@@ -70,11 +70,11 @@
         },
         {
             "column" : "est_dt",
-            "rule" : "DATETIME_2"
+            "rule" : "DATETIME"
         },
         {
             "column" : "acc_mt",
-            "rule" : "MONTH_1"
+            "rule" : "MONTH"
         }
     ]
 }

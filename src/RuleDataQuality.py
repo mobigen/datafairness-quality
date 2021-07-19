@@ -8,23 +8,26 @@ class RuleDataQuailty(DataQuality):
     def __init__(self, file_path):
         super().__init__(file_path)
 
-    def _set_rule(self, regex, rules):
+    def _set_rule(self, regex_set, rules):
         column_rule = {}
 
         for rule in rules["rules"]:
             column_name = rule["column"]
-            pattern_name = rule["rule"]
+            set_name = rule["rule"]
 
-            if pattern_name != "STATS" and pattern_name not in regex:
-                print("undefined regex name. ({})".format(pattern_name))
-                return None
             if len(column_name) == 0:
                 print("column name is empty.\n{}".format(rule))
                 return None
-            if len(pattern_name) == 0:
+
+            if len(set_name) == 0:
                 print("rule name is empty.\n{}".format(rule))
                 return None
-            column_rule[column_name] = pattern_name
+
+            if set_name != "STATS" and set_name not in regex_set.keys():
+                print("undefined regex name. ({})".format(set_name))
+                return None
+            
+            column_rule[column_name] = set_name
 
         return column_rule
 
@@ -48,24 +51,58 @@ class RuleDataQuailty(DataQuality):
 
         return pattern_stats
 
-    def _check_pattern(self, column, pattern_name, regex_compile):
-        pattern_stats = {"MATCH": 0, "MISSMATCH": 0, "INVALID": 0}
+    def _check_pattern(self, column, column_name, column_rule, regex_set, regex_compile):
+        pattern_stats = {"INVALID" : 0, "UNKNOWN" : 0}
+        set_name = column_rule[column_name]
 
-        if pattern_name == "STATS":
+        for key, value in column_rule.items():
+            print("key : {}, value : {}".format(key, value))
+        '''
+        for data in column:
+            if data == None:
+                continue
+
+            f_find = 0
+            for key, value in regex_compile.items():
+                result = self._regex_match(key, value, data)
+
+                if result != None:
+                    if self._check_valid(key, data) == False:
+                        break
+                    pattern_stats[key] += 1
+                    f_find = 1
+
+            if f_find == 0:
+                if "UNKNOWN" not in pattern_stats:
+                    pattern_stats["UNKNOWN"] = 0
+                pattern_stats["UNKNOWN"] += 1
+
+        column_pattern = sorted(
+            pattern_stats.items(), key=operator.itemgetter(1), reverse=True
+        )[0][0]
+
+        return column_pattern
+        '''
+        if set_name == "STATS":
             return pattern_stats
 
         for data in column:
             if data == None:
                 continue
 
-            result = self._regex_match(pattern_name, regex_compile[pattern_name], data)
-            if result != None:
-                if self._check_valid(pattern_name, data) == False:
-                    pattern_stats["INVALID"] += 1
-                    continue
-                pattern_stats["MATCH"] += 1
-            else:
-                pattern_stats["MISSMATCH"] += 1
+            for pattern_name in regex_set[set_name]:
+                print("pattern_name : {}".format(pattern_name))
+
+                result = self._regex_match(pattern_name, regex_compile[pattern_name], data)
+                if result != None:
+                    if self._check_valid(pattern_name, data) == False:
+                        pattern_stats["INVALID"] += 1
+                        continue
+                    if pattern_name not in pattern_stats:
+                        pattern_stats[pattern_name] = 0
+                    pattern_stats[pattern_name] += 1
+                else:
+                    pattern_stats["UNKNOWN"] += 1
 
         return pattern_stats
 
@@ -86,10 +123,10 @@ class RuleDataQuailty(DataQuality):
             max_type_cnt, column_info["row_count"]
         )
 
-        data_dqi["pattern_mismatch_rate"] = self._calc_violation_rate(
-            col_stats.pattern_stats["MATCH"], column_info["row_count"]
-        )
-        data_dqi["consistency_violation_rate"] = data_dqi["pattern_mismatch_rate"]
+        #data_dqi["pattern_mismatch_rate"] = self._calc_violation_rate(
+        #    col_stats.pattern_stats["MATCH"], column_info["row_count"]
+        #)
+        #data_dqi["consistency_violation_rate"] = data_dqi["pattern_mismatch_rate"]
         data_dqi["outlier_ratio"] = self._calc_outlier_ratio(column_info, column)
 
         if column_info["column_pattern"] in unique_regex:
@@ -99,24 +136,24 @@ class RuleDataQuailty(DataQuality):
                 column_info["row_count"], col_stats
             )
 
-        if column_info["column_pattern"] in bin_regex:
-            data_dqi["binary_violation_rate"] = self._calc_violation_rate(
-                col_stats.pattern_stats["MATCH"], column_info["row_count"]
-            )
+        #if column_info["column_pattern"] in bin_regex:
+        #    data_dqi["binary_violation_rate"] = self._calc_violation_rate(
+        #        col_stats.pattern_stats["MATCH"], column_info["row_count"]
+        #    )
 
-        if column_info["column_pattern"] in range_info:
-            data_dqi["range_violation_rate"] = self._calc_violation_rate(
-                col_stats.pattern_stats["MATCH"], column_info["row_count"]
-            )
+        #if column_info["column_pattern"] in range_info:
+        #    data_dqi["range_violation_rate"] = self._calc_violation_rate(
+        #        col_stats.pattern_stats["MATCH"], column_info["row_count"]
+        #    )
 
         return data_dqi
 
     def evaluation(self, rules):
         table_dqi = {}
 
-        regex, regex_compile, unique_regex, bin_regex, range_info = self._set_regex()
+        regex, regex_compile, regex_set, unique_regex, bin_regex, range_info = self._set_regex()
 
-        column_rule = self._set_rule(regex, rules)
+        column_rule = self._set_rule(regex_set, rules)
         if column_rule == None:
             return None
 
@@ -130,14 +167,13 @@ class RuleDataQuailty(DataQuality):
                 self._df[column_name].isnull(), None, self._df[column_name]
             )
 
-            pattern_name = column_rule[column_name]
             if col_stats.column_pattern in range_info:
                 col_stats.pattern_stats = self._check_range(
-                    column, pattern_name, range_info
+                    column, col_stats.column_pattern, range_info
                 )
             else:
                 col_stats.pattern_stats = self._check_pattern(
-                    column, pattern_name, regex_compile
+                    column, column_name, column_rule, regex_set, regex_compile
                 )
 
             (
