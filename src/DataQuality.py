@@ -13,7 +13,7 @@ class ColumnStats:
         self.row_count = 0
         self.column_type = ""
         self.column_pattern = ""
-        self.missing_cnt = 0
+        self.missing_count = 0
         self.type_stats = {}
         self.pattern_stats = {}
         self.number_stats = {}
@@ -28,27 +28,27 @@ class DataQuality:
         self._df = pd.read_csv(file_path, header=0, dtype=str)
         self.table_stats = {"column_stats": []}
 
-    def _set_regex(self):
+    def set_regex(self):
         config = configparser.ConfigParser()
         config.optionxform = str  # config.ini 구문 분석 시, 대문자->소문자 변환되는 동작 비활성화
         config.read("conf/config.ini", encoding="utf-8")
 
         regex = {}
         regex_compile = {}
+        regex_set = {}
         unique_regex = []
         bin_regex = []
         range_info = {}
 
-        for pattern in config["COMMON_REGEX"]:
-            regex[pattern] = config["COMMON_REGEX"][pattern]
+        for pattern in config["REGEX"]:
+            regex[pattern] = config["REGEX"][pattern]
 
-        for pattern in config["UNIQUE_REGEX"]:
-            regex[pattern] = config["UNIQUE_REGEX"][pattern]
-            unique_regex.append(pattern)
+        for set_name in config["REGEX_SET"]:
+            regex_set[set_name] = config["REGEX_SET"][set_name].split(",")
 
-        for pattern in config["BIN_REGEX"]:
-            regex[pattern] = config["BIN_REGEX"][pattern]
-            bin_regex.append(pattern)
+        unique_regex = config["UNIQUE_REGEX_SET"]["UNIQUE"].split(",")
+
+        bin_regex = config["BIN_REGEX_SET"]["BIN"].split(",")
 
         for pattern in config["RANGE"]:
             range = config["RANGE"][pattern].split(",")
@@ -57,9 +57,9 @@ class DataQuality:
         for key, value in regex.items():
             regex_compile[key] = re.compile(value)
 
-        return regex, regex_compile, unique_regex, bin_regex, range_info
+        return regex_compile, regex_set, unique_regex, bin_regex, range_info
 
-    def _regex_match(self, regex_key, regex_compile, data):
+    def regex_match(self, regex_key, regex_compile, data):
         if (
             regex_key == "ADDRESS"
             or regex_key == "URL"
@@ -71,7 +71,7 @@ class DataQuality:
             result = regex_compile.fullmatch(data)
         return result
 
-    def _cal_row_missing_rate(self):
+    def cal_row_missing_rate(self):
         rate_percentile = {
             "0.0": 0,
             "0.1": 0,
@@ -100,7 +100,7 @@ class DataQuality:
 
         return rate_percentile
 
-    def _check_credit_no(self, credit_no):
+    def check_credit_no(self, credit_no):
         credit_no = credit_no.replace(" ", "").replace("-", "")
         sum = 0
 
@@ -120,7 +120,7 @@ class DataQuality:
         #    print("Invalid Credit Number [{}]".format(credit_no))
         return False
 
-    def _check_corp_no(self, corp_no):
+    def check_corp_no(self, corp_no):
         corp_no = corp_no.replace(" ", "").replace("-", "")
         sum = 0
         for index, value in enumerate(corp_no[:12]):
@@ -135,19 +135,19 @@ class DataQuality:
 
         if int(corp_no[12]) == valid_no:
             return True
-        #else:
+        # else:
         #    print("Invalid Corporate Registration Number [{}]".format(corp_no))
         return False
 
-    def _check_valid(self, regex_key, data):
+    def check_valid(self, regex_key, data):
         result = True
         if regex_key == "CREDIT_NO":
-            result = self._check_credit_no(data)
+            result = self.check_credit_no(data)
         elif regex_key == "CORP_NO":
-            result = self._check_corp_no(data)
+            result = self.check_corp_no(data)
         return result
 
-    def _check_type(self, column):
+    def check_type(self, column):
         missing_cnt = 0
         type_stats = {"NUMBER": 0, "STRING": 0, "DATETIME": 0}
 
@@ -187,7 +187,7 @@ class DataQuality:
 
         return column_type, type_stats, unique_stats, missing_cnt
 
-    def _calc_quartile(self, quantile, column):
+    def calc_quartile(self, quantile, column):
         quartile_stats = {}
         column_df = pd.DataFrame({"col": column})
         quantile_data = pd.cut(column_df["col"], quantile)
@@ -200,7 +200,7 @@ class DataQuality:
 
         return quartile_stats
 
-    def _calc_statistics(self, column_type, quartile, column):
+    def calc_statistics(self, column_type, quartile, column):
         number_stats = {"mean": 0, "min": 0, "max": 0, "median": 0, "std": 0}
         string_stats = {"mean": 0, "min": {}, "max": {}, "median": 0, "std": 0}
         common_stats = {"mode": {}}
@@ -215,7 +215,7 @@ class DataQuality:
                 number_stats["std"] = float(column.std())
                 number_stats["median"] = float(np.median(column))
 
-                quartile_stats = self._calc_quartile(quartile, column)
+                quartile_stats = self.calc_quartile(quartile, column)
             elif column_type == "STRING":
                 len_list = [len(x) for x in column]
 
@@ -237,46 +237,52 @@ class DataQuality:
 
         return number_stats, string_stats, common_stats, quartile_stats
 
-    def _calc_missing_rate(self, missing_cnt, row_cnt):
-        return missing_cnt / row_cnt
+    def calc_missing_rate(self, missing_cnt, row_cnt):
+        try:
+            return missing_cnt / row_cnt
+        except ZeroDivisionError:
+            return 0
 
-    def _calc_violation_rate(self, match_cnt, row_cnt):
-        return (row_cnt - match_cnt) / row_cnt
+    def calc_violation_rate(self, match_cnt, row_cnt):
+        try:
+            return (row_cnt - match_cnt) / row_cnt
+        except ZeroDivisionError:
+            return 0
 
-    def _calc_outlier_ratio(self, column_info, column):
+    def calc_outlier_ratio(self, col_stats, column):
         outlier_cnt = 0
-        if column_info["column_type"] == "NUMBER":
-            outlier_min = column_info["number_stat"]["mean"] - (
-                3 * column_info["number_stat"]["std"]
+        if col_stats.column_type == "NUMBER":
+            outlier_min = col_stats.number_stats["mean"] - (
+                3 * col_stats.number_stats["std"]
             )
-            outlier_max = column_info["number_stat"]["mean"] + (
-                3 * column_info["number_stat"]["std"]
+            outlier_max = col_stats.number_stats["mean"] + (
+                3 * col_stats.number_stats["std"]
             )
             for data in column:
                 if float(data) < outlier_min or outlier_max < float(data):
                     outlier_cnt += 1
-        elif column_info["column_type"] == "STRING":
-            outlier_min = column_info["string_stat"]["len mean"] - (
-                3 * column_info["string_stat"]["len std"]
+        elif col_stats.column_type == "STRING":
+            outlier_min = col_stats.string_stats["mean"] - (
+                3 * col_stats.string_stats["std"]
             )
-            outlier_max = column_info["string_stat"]["len mean"] + (
-                3 * column_info["string_stat"]["len std"]
+            outlier_max = col_stats.string_stats["mean"] + (
+                3 * col_stats.string_stats["std"]
             )
             for data in column:
                 if len(data) < outlier_min or outlier_max < len(data):
                     outlier_cnt += 1
 
-        return outlier_cnt / column_info["row_count"]
+        return outlier_cnt / col_stats.row_count
 
-    def _calc_uniqueness_violation_rate(self, row_cnt, col_stats):
+    def calc_uniqueness_violation_rate(self, row_cnt, unique_stats):
         uniqueness_violation_cnt = 0
-        for key, value in col_stats.unique_stats.items():
+        for value in unique_stats.values():
             if value >= 2:
                 uniqueness_violation_cnt += value - 1
 
         return uniqueness_violation_cnt / row_cnt
 
-    def _get_quartile(self, unique_data_cnt):
+    def get_quartile(self, unique_data_cnt):
         max_quartile = 10
         quartile = unique_data_cnt / 2
         if quartile <= 1:
@@ -286,7 +292,7 @@ class DataQuality:
 
         return int(quartile)
 
-    def _make_col_info(
+    def make_col_info(
         self,
         col_stats,
     ):
@@ -295,9 +301,9 @@ class DataQuality:
         column_info["column_name"] = col_stats.column_name
         column_info["column_type"] = col_stats.column_type
         column_info["row_count"] = col_stats.row_count
-        column_info["missing_count"] = col_stats.missing_cnt
+        column_info["missing_count"] = col_stats.missing_count
 
-        if column_info["row_count"] == col_stats.missing_cnt:
+        if column_info["row_count"] == col_stats.missing_count:
             column_info["column_pattern"] = None
         else:
             column_info["column_pattern"] = col_stats.column_pattern
@@ -310,12 +316,19 @@ class DataQuality:
         )
 
         column_info["data_pattern"] = {
-            sort_pattern[index][0]: sort_pattern[index][1]
-            for index in range(len(sort_type))
+            sort_pattern[index][0]: "{} ({}%)".format(
+                sort_pattern[index][1],
+                int((sort_pattern[index][1] / col_stats.row_count) * 100),
+            )
+            for index in range(len(sort_pattern))
         }
 
         column_info["data_type"] = {
-            sort_type[index][0]: sort_type[index][1] for index in range(len(sort_type))
+            sort_type[index][0]: "{} ({}%)".format(
+                sort_type[index][1],
+                int((sort_type[index][1] / col_stats.row_count) * 100),
+            )
+            for index in range(len(sort_type))
         }
 
         if col_stats.column_type == "STRING":
