@@ -8,7 +8,7 @@ class RuleDataQuailty(DataQuality):
     def __init__(self, file_path):
         super().__init__(file_path)
 
-    def _set_rule(self, regex_set, rules):
+    def set_rule(self, regex_set, rules):
         column_rule = {}
 
         for rule in rules["rules"]:
@@ -31,7 +31,7 @@ class RuleDataQuailty(DataQuality):
 
         return column_rule
 
-    def _check_range(self, column, pattern_name, range_info):
+    def check_range(self, column, pattern_name, range_info):
         pattern_stats = {"MATCH": 0, "MISSMATCH": 0, "INVALID": 0}
         min = range_info[pattern_name]["min"]
         max = range_info[pattern_name]["max"]
@@ -51,9 +51,7 @@ class RuleDataQuailty(DataQuality):
 
         return pattern_stats
 
-    def _check_pattern(
-        self, column, column_name, column_rule, regex_set, regex_compile
-    ):
+    def check_pattern(self, column, column_name, column_rule, regex_set, regex_compile):
         pattern_stats = {}
         set_name = column_rule[column_name]
 
@@ -68,23 +66,21 @@ class RuleDataQuailty(DataQuality):
                 continue
 
             for pattern_name in regex_set[set_name]:
-                result = self._regex_match(
+                result = self.regex_match(
                     pattern_name, regex_compile[pattern_name], data
                 )
                 if result != None:
-                    if self._check_valid(pattern_name, data) == False:
+                    if self.check_valid(pattern_name, data) == False:
                         continue
                     pattern_stats[pattern_name] += 1
 
         return pattern_stats
 
-    def _calc_col_dqi(
-        self, column_info, column, col_stats, unique_regex, bin_regex, range_info
-    ):
+    def calc_col_dqi(self, column, col_stats, unique_regex, bin_regex, range_info):
         data_dqi = {}
 
         if (
-            col_stats.missing_cnt == col_stats.row_count
+            col_stats.missing_count == col_stats.row_count
             or col_stats.column_pattern == "STATS"
         ):
             return data_dqi
@@ -97,43 +93,41 @@ class RuleDataQuailty(DataQuality):
             col_stats.type_stats.items(), key=lambda x: x[1], reverse=True
         )[0][1]
 
-        data_dqi["missing_rate"] = self._calc_missing_rate(
-            column_info["missing_count"], column_info["row_count"]
+        data_dqi["missing_rate"] = self.calc_missing_rate(
+            col_stats.missing_count, col_stats.row_count
         )
 
-        data_dqi["type_missmatch_rate"] = self._calc_violation_rate(
-            max_type_cnt, column_info["row_count"]
+        data_dqi["type_missmatch_rate"] = self.calc_violation_rate(
+            max_type_cnt, col_stats.row_count
         )
 
         sum_match_cnt = 0
         for match_cnt in col_stats.pattern_stats.values():
             sum_match_cnt += match_cnt
 
-        data_dqi["pattern_mismatch_rate"] = self._calc_violation_rate(
-            sum_match_cnt, column_info["row_count"]
+        data_dqi["pattern_mismatch_rate"] = self.calc_violation_rate(
+            sum_match_cnt, col_stats.row_count
         )
 
-        data_dqi["consistency_violation_rate"] = self._calc_violation_rate(
+        data_dqi["consistency_violation_rate"] = self.calc_violation_rate(
             max_pattern_cnt, sum_match_cnt
         )
 
-        data_dqi["outlier_ratio"] = self._calc_outlier_ratio(column_info, column)
+        data_dqi["outlier_ratio"] = self.calc_outlier_ratio(col_stats, column)
 
-        if column_info["column_pattern"] in unique_regex:
-            data_dqi[
-                "uniqueness_violation_rate"
-            ] = self._calc_uniqueness_violation_rate(
-                column_info["row_count"], col_stats
+        if col_stats.column_pattern in unique_regex:
+            data_dqi["uniqueness_violation_rate"] = self.calc_uniqueness_violation_rate(
+                col_stats.row_count, col_stats.unique_stats
             )
 
-        if column_info["column_pattern"] in range_info:
-            data_dqi["range_violation_rate"] = self._calc_violation_rate(
-                col_stats.pattern_stats["MATCH"], column_info["row_count"]
+        if col_stats.column_pattern in range_info:
+            data_dqi["range_violation_rate"] = self.calc_violation_rate(
+                col_stats.pattern_stats["MATCH"], col_stats.row_count
             )
 
-        if column_info["column_pattern"] in bin_regex:
-            data_dqi["binary_violation_rate"] = self._calc_violation_rate(
-                max_pattern_cnt, column_info["row_count"]
+        if col_stats.column_pattern in bin_regex:
+            data_dqi["binary_violation_rate"] = self.calc_violation_rate(
+                max_pattern_cnt, col_stats.row_count
             )
 
         return data_dqi
@@ -147,9 +141,9 @@ class RuleDataQuailty(DataQuality):
             unique_regex,
             bin_regex,
             range_info,
-        ) = self._set_regex()
+        ) = self.set_regex()
 
-        column_rule = self._set_rule(regex_set, rules)
+        column_rule = self.set_rule(regex_set, rules)
         if column_rule == None:
             return None
 
@@ -164,11 +158,11 @@ class RuleDataQuailty(DataQuality):
             )
 
             if col_stats.column_pattern in range_info:
-                col_stats.pattern_stats = self._check_range(
+                col_stats.pattern_stats = self.check_range(
                     column, col_stats.column_pattern, range_info
                 )
             else:
-                col_stats.pattern_stats = self._check_pattern(
+                col_stats.pattern_stats = self.check_pattern(
                     column, column_name, column_rule, regex_set, regex_compile
                 )
 
@@ -176,10 +170,10 @@ class RuleDataQuailty(DataQuality):
                 col_stats.column_type,
                 col_stats.type_stats,
                 col_stats.unique_stats,
-                col_stats.missing_cnt,
-            ) = self._check_type(column)
+                col_stats.missing_count,
+            ) = self.check_type(column)
 
-            quartile = self._get_quartile(len(col_stats.unique_stats))
+            quartile = self.get_quartile(len(col_stats.unique_stats))
 
             column = column[column != None]
 
@@ -188,12 +182,12 @@ class RuleDataQuailty(DataQuality):
                 col_stats.string_stats,
                 col_stats.common_stats,
                 col_stats.quartile_stats,
-            ) = self._calc_statistics(col_stats.column_type, quartile, column)
+            ) = self.calc_statistics(col_stats.column_type, quartile, column)
 
-            column_info = self._make_col_info(col_stats)
+            column_info = self.make_col_info(col_stats)
 
-            column_info["column_dqi"] = self._calc_col_dqi(
-                column_info, column, col_stats, unique_regex, bin_regex, range_info
+            column_info["column_dqi"] = self.calc_col_dqi(
+                column, col_stats, unique_regex, bin_regex, range_info
             )
 
             self.table_stats["column_stats"].append(column_info)
@@ -214,7 +208,7 @@ class RuleDataQuailty(DataQuality):
 
 
 if __name__ == "__main__":
-    file_path = "/Users/cbc/Downloads/corp_num/company_100.csv"
+    file_path = "sample_data/company_100.csv"
 
     with open("conf/rule.json", "r") as fd:
         rules = json.load(fd)
