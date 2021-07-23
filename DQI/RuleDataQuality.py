@@ -1,10 +1,9 @@
-from DataQuality import DataQuality
-from DataQuality import ColumnStats
+from .DataQuality import DataQuality
+from .DataQuality import ColumnStats
 import numpy as np
-import json
 
 
-class RuleDataQuailty(DataQuality):
+class RuleDataQuality(DataQuality):
     def __init__(self, file_path):
         super().__init__(file_path)
 
@@ -205,15 +204,3 @@ class RuleDataQuailty(DataQuality):
         self.table_stats["table_dqi"] = table_dqi
 
         return self.table_stats
-
-
-if __name__ == "__main__":
-    file_path = "sample_data/company_100.csv"
-
-    with open("conf/rule.json", "r") as fd:
-        rules = json.load(fd)
-
-    rule = RuleDataQuailty(file_path)
-    result = rule.evaluation(rules)
-
-    print(json.dumps(result, indent=3, ensure_ascii=False))
