@@ -1,8 +1,7 @@
-from DataQuality import DataQuality
-from DataQuality import ColumnStats
+from .DataQuality import DataQuality
+from .DataQuality import ColumnStats
 import operator
 import numpy as np
-import json
 
 
 class AutoDataQuality(DataQuality):
@@ -145,12 +144,3 @@ class AutoDataQuality(DataQuality):
         self.table_stats["table_dqi"] = table_dqi
 
         return self.table_stats
-
-
-if __name__ == "__main__":
-    file_path = "sample_data/company_100.csv"
-
-    auto = AutoDataQuality(file_path)
-    result = auto.evaluation()
-
-    print(json.dumps(result, indent=3, ensure_ascii=False))
