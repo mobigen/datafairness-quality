@@ -46,9 +46,9 @@ class DataQuality:
         for set_name in config["REGEX_SET"]:
             regex_set[set_name] = config["REGEX_SET"][set_name].split(",")
 
-        unique_regex = config["UNIQUE_REGEX_SET"]["UNIQUE"].split(",")
+        unique_regex = config["UNIQUE_SET"]["UNIQUE"].split(",")
 
-        bin_regex = config["BIN_REGEX_SET"]["BIN"].split(",")
+        bin_regex = config["BIN_SET"]["BIN"].split(",")
 
         for pattern in config["RANGE"]:
             range = config["RANGE"][pattern].split(",")
@@ -300,13 +300,14 @@ class DataQuality:
 
         column_info["column_name"] = col_stats.column_name
         column_info["column_type"] = col_stats.column_type
-        column_info["row_count"] = col_stats.row_count
-        column_info["missing_count"] = col_stats.missing_count
 
-        if column_info["row_count"] == col_stats.missing_count:
+        if col_stats.row_count == col_stats.missing_count:
             column_info["column_pattern"] = None
         else:
             column_info["column_pattern"] = col_stats.column_pattern
+
+        column_info["row_count"] = col_stats.row_count
+        column_info["missing_count"] = col_stats.missing_count
 
         sort_pattern = sorted(
             col_stats.pattern_stats.items(), key=lambda x: x[1], reverse=True
@@ -315,7 +316,7 @@ class DataQuality:
             col_stats.type_stats.items(), key=lambda x: x[1], reverse=True
         )
 
-        column_info["data_pattern"] = {
+        column_info["pattern"] = {
             sort_pattern[index][0]: "{} ({}%)".format(
                 sort_pattern[index][1],
                 int((sort_pattern[index][1] / col_stats.row_count) * 100),
@@ -323,7 +324,7 @@ class DataQuality:
             for index in range(len(sort_pattern))
         }
 
-        column_info["data_type"] = {
+        column_info["type"] = {
             sort_type[index][0]: "{} ({}%)".format(
                 sort_type[index][1],
                 int((sort_type[index][1] / col_stats.row_count) * 100),

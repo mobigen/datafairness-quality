@@ -20,8 +20,8 @@ def rule_dqi(file_path):
 if __name__ == "__main__":
     file_path = "sample_data/company_100.csv"
 
-    result = auto_dqi(file_path)
-
-    #result = rule_dqi(file_path)
+    #result = auto_dqi(file_path)
+    
+    result = rule_dqi(file_path)
 
     print(json.dumps(result, indent=3, ensure_ascii=False))
