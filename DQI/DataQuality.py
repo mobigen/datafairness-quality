@@ -5,7 +5,8 @@ import pandas as pd
 import numpy as np
 from collections import Counter
 from dateutil.parser import parse
-
+from transformers import ElectraTokenizer, ElectraForTokenClassification
+from .ner_pipeline import NerPipeline
 
 class ColumnStats:
     def __init__(self):
@@ -21,12 +22,15 @@ class ColumnStats:
         self.common_stats = {}
         self.quartile_stats = {}
         self.unique_stats = {}
+        self.ner = ""
 
 
 class DataQuality:
     def __init__(self, file_path):
         self._df = pd.read_csv(file_path, header=0, dtype=str)
         self.table_stats = {"column_stats": []}
+        self.tokenizer = ElectraTokenizer.from_pretrained("monologg/koelectra-small-finetuned-naver-ner")
+        self.model = ElectraForTokenClassification.from_pretrained("monologg/koelectra-small-finetuned-naver-ner")
 
     def set_regex(self):
         config = configparser.ConfigParser()
@@ -70,6 +74,14 @@ class DataQuality:
         else:
             result = regex_compile.fullmatch(data)
         return result
+
+    def predict_ner(self, column, column_name):
+        ner = NerPipeline(model=self.model,
+                        tokenizer=self.tokenizer,
+                        ignore_special_tokens=True)
+
+        answer, stats = ner.data_ner(column, column_name)
+        return answer, stats
 
     def cal_row_missing_rate(self):
         rate_percentile = {
@@ -305,6 +317,8 @@ class DataQuality:
             column_info["column_pattern"] = None
         else:
             column_info["column_pattern"] = col_stats.column_pattern
+
+        column_info["ner_entity"] = col_stats.ner
 
         column_info["row_count"] = col_stats.row_count
         column_info["missing_count"] = col_stats.missing_count

@@ -18,7 +18,7 @@ def rule_dqi(file_path):
     return result
 
 if __name__ == "__main__":
-    file_path = "sample_data/company_100.csv"
+    file_path = "sample_data/company_1000.csv"
 
     #result = auto_dqi(file_path)
     

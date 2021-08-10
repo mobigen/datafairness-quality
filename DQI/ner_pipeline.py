@@ -16,12 +16,10 @@
 import logging
 from os import stat
 from pprint import pprint
-import types
 from typing import Optional, Union
 
 import torch
 import numpy as np
-from torch._C import ThroughputBenchmark
 
 from transformers import (
     BasicTokenizer,
@@ -30,7 +28,6 @@ from transformers import (
     ModelCard,
     is_tf_available,
     is_torch_available,
-    tokenization_bert
 )
 
 from transformers.pipelines import ArgumentHandler
@@ -176,78 +173,67 @@ class NerPipeline(Pipeline):
             binary_output=binary_output,
             task=task,
         )
-
         self._basic_tokenizer = BasicTokenizer(do_lower_case=False)
         self.ignore_labels = ignore_labels
         self.ignore_special_tokens = ignore_special_tokens
 
-    #def __call__(self, *texts, **kwargs):
-    #    inputs = self._args_parser(*texts, **kwargs)
-    def ner(self, columns, column_names):
-        columns = self._args_parser(columns)
-        answers = []
-        stats = {}
+    def data_ner(self, column, name):
+        stats = {name : {}}
+        # Manage correct placement of the tensors
+        with self.device_placement():
+            # [FIX] Split token by word-level
+            tokens, words, tokens_mask = custom_encode_plus(
+                column,
+                self.tokenizer,
+                return_tensors=self.framework
+            )
 
-        for name, column in zip(column_names, columns):
-            stats[name] = {}
-            # Manage correct placement of the tensors
-            with self.device_placement():
+            # Forward
+            if self.framework == "tf":
+                entities = self.model(tokens)[0][0].numpy()
+                input_ids = tokens["input_ids"].numpy()[0]
+            else:
+                with torch.no_grad():
+                    tokens = self.ensure_tensor_on_device(**tokens)
+                    entities = self.model(**tokens)[0][0].cpu().numpy()
+                    input_ids = tokens["input_ids"].cpu().numpy()[0]
 
-                # [FIX] Split token by word-level
-                tokens, words, tokens_mask = custom_encode_plus(
-                    column,
-                    self.tokenizer,
-                    return_tensors=self.framework
-                )
+        score = np.exp(entities) / np.exp(entities).sum(-1, keepdims=True)
+        labels_idx = score.argmax(axis=-1)
 
-                # Forward
-                if self.framework == "tf":
-                    entities = self.model(tokens)[0][0].numpy()
-                    input_ids = tokens["input_ids"].numpy()[0]
-                else:
-                    with torch.no_grad():
-                        tokens = self.ensure_tensor_on_device(**tokens)
-                        entities = self.model(**tokens)[0][0].cpu().numpy()
-                        input_ids = tokens["input_ids"].cpu().numpy()[0]
+        token_level_answer = []
+        for idx, label_idx in enumerate(labels_idx):
+            # NOTE Append every answer even though the `entity` is in `ignore_labels`
+            token_level_answer += [
+                {
+                    "word": self.tokenizer.convert_ids_to_tokens(int(input_ids[idx])),
+                    "entity": self.model.config.id2label[label_idx],
+                }
+            ]
+        # [FIX] Now let's change it to word-level NER
+        word_idx = 0
+        word_level_answer = []
 
-            score = np.exp(entities) / np.exp(entities).sum(-1, keepdims=True)
-            labels_idx = score.argmax(axis=-1)
+        # NOTE: Might not be safe. BERT, ELECTRA etc. won't make issues.       
+        if self.ignore_special_tokens:
+            words = words[1:-1]
+            tokens_mask = tokens_mask[1:-1]
+            token_level_answer = token_level_answer[1:-1]
 
-            token_level_answer = []
-            for idx, label_idx in enumerate(labels_idx):
-                # NOTE Append every answer even though the `entity` is in `ignore_labels`
-                token_level_answer += [
-                    {
-                        "word": self.tokenizer.convert_ids_to_tokens(int(input_ids[idx])),
-                        "entity": self.model.config.id2label[label_idx],
-                    }
-                ]
+        for mask, ans in zip(tokens_mask, token_level_answer):
+            if mask == 1:
+                word = words[word_idx]
+                ans["col_name"] = name
+                ans["word"] = word
+                word_idx += 1
+                if ans["entity"] not in self.ignore_labels:
+                    word_level_answer.append(ans)
 
-            # [FIX] Now let's change it to word-level NER
-            word_idx = 0
-            word_level_answer = []
+                    if ans["entity"] not in stats[name]:
+                        stats[name][ans["entity"]] = 0
+                    stats[name][ans["entity"]] += 1
 
-            # NOTE: Might not be safe. BERT, ELECTRA etc. won't make issues.       
-            if self.ignore_special_tokens:
-                words = words[1:-1]
-                tokens_mask = tokens_mask[1:-1]
-                token_level_answer = token_level_answer[1:-1]
+        # Append
+        answers = word_level_answer
 
-            for mask, ans in zip(tokens_mask, token_level_answer):
-                if mask == 1:
-                    word = words[word_idx]
-                    ans["col_name"] = name
-                    ans["word"] = word
-                    word_idx += 1
-                    if ans["entity"] not in self.ignore_labels:
-                        word_level_answer.append(ans)
-
-                        if ans["entity"] not in stats[name]:
-                            stats[name][ans["entity"]] = 0
-                        stats[name][ans["entity"]] += 1
-
-            # Append
-            answers += [word_level_answer]
-        if len(answers) == 1:
-            return answers[0]
         return answers, stats
