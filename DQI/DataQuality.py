@@ -8,12 +8,13 @@ from dateutil.parser import parse
 from transformers import ElectraTokenizer, ElectraForTokenClassification
 from .ner_pipeline import NerPipeline
 
+
 class ColumnStats:
     def __init__(self):
-        self.column_name = ""
+        self.column_name = None
         self.row_count = 0
-        self.column_type = ""
-        self.column_pattern = ""
+        self.column_type = None
+        self.column_pattern = None
         self.missing_count = 0
         self.type_stats = {}
         self.pattern_stats = {}
@@ -22,15 +23,19 @@ class ColumnStats:
         self.common_stats = {}
         self.quartile_stats = {}
         self.unique_stats = {}
-        self.ner = ""
+        self.ner = None
 
 
 class DataQuality:
     def __init__(self, file_path):
         self._df = pd.read_csv(file_path, header=0, dtype=str)
         self.table_stats = {"column_stats": []}
-        self.tokenizer = ElectraTokenizer.from_pretrained("monologg/koelectra-small-finetuned-naver-ner")
-        self.model = ElectraForTokenClassification.from_pretrained("monologg/koelectra-small-finetuned-naver-ner")
+        self.tokenizer = ElectraTokenizer.from_pretrained(
+            "monologg/koelectra-small-finetuned-naver-ner"
+        )
+        self.model = ElectraForTokenClassification.from_pretrained(
+            "monologg/koelectra-small-finetuned-naver-ner"
+        )
 
     def set_regex(self):
         config = configparser.ConfigParser()
@@ -76,12 +81,98 @@ class DataQuality:
         return result
 
     def predict_ner(self, column, column_name):
-        ner = NerPipeline(model=self.model,
-                        tokenizer=self.tokenizer,
-                        ignore_special_tokens=True)
+        ner = NerPipeline(
+            model=self.model, tokenizer=self.tokenizer, ignore_special_tokens=True
+        )
 
-        answer, stats = ner.data_ner(column, column_name)
-        return answer, stats
+        word_level_answer, ner_stats = ner.data_ner(column, column_name)
+        return word_level_answer, ner_stats
+
+    def convert_ner(self, ner_entity):
+        """
+
+        개체명 범주            태그     정의
+        PERSON              PER     실존, 가상 등 인물명에 해당 하는 것
+        FIELD               FLD     학문 분야 및 이론, 법칙, 기술 등
+        ARTIFACTS_WORKS     AFW     인공물로 사람에 의해 창조된 대상물
+        ORGANIZATION        ORG     기관 및 단체와 회의/회담을 모두 포함
+        LOCATION            LOC     지역명칭과 행정구역 명칭 등
+        CIVILIZATION        CVL     문명 및 문화에 관련된 용어
+        DATE                DAT     날짜
+        TIME                TIM     시간
+        NUMBER              NUM     숫자
+        EVENT               EVT     특정 사건 및 사고 명칭과 행사 등
+        ANIMAL              ANM     동물
+        PLANT               PLT     식물
+        MATERIAL            MAT     금속, 암석, 화학물질 등
+        TERM                TRM     의학 용어, IT곤련 용어 등 일반 용어를 총칭
+
+        {0: 'O', 1: 'PER-B', 2: 'PER-I', 3: 'FLD-B', 4: 'FLD-I', 5: 'AFW-B', 6: 'AFW-I',
+        7: 'ORG-B', 8: 'ORG-I', 9: 'LOC-B', 10: 'LOC-I', 11: 'CVL-B', 12: 'CVL-I', 13: 'DAT-B',
+        14: 'DAT-I', 15: 'TIM-B', 16: 'TIM-I', 17: 'NUM-B', 18: 'NUM-I', 19: 'EVT-B', 20: 'EVT-I',
+        21: 'ANM-B', 22: 'ANM-I', 23: 'PLT-B', 24: 'PLT-I', 25: 'MAT-B', 26: 'MAT-I', 27: 'TRM-B', 28: 'TRM-I'}
+
+        """
+        result = ""
+        if "PER" in ner_entity:
+            result = "PERSON"
+        elif "FLD" in ner_entity:
+            result = "FIELD"
+        elif "AFW" in ner_entity:
+            result = "ARTIFACTS_WORKS"
+        elif "ORG" in ner_entity:
+            result = "ORGANIZATION"
+        elif "LOC" in ner_entity:
+            result = "LOCATION"
+        elif "CVL" in ner_entity:
+            result = "CIVILIZATION"
+        elif "DAT" in ner_entity:
+            result = "DATE"
+        elif "TIM" in ner_entity:
+            result = "TIME"
+        elif "NUM" in ner_entity:
+            result = "NUMBER"
+        elif "EVT" in ner_entity:
+            result = "EVENT"
+        elif "ANM" in ner_entity:
+            result = "ANIMAL"
+        elif "PLT" in ner_entity:
+            result = "PLANT"
+        elif "MAT" in ner_entity:
+            result = "MATERIAL"
+        elif "TRM" in ner_entity:
+            result = "TERM"
+
+        return result
+
+    def get_ner(self, col_stats, column, column_name):
+        mod_pattern = []
+        mod_pattern.append(
+            sorted(
+                col_stats.pattern_stats.items(),
+                key=operator.itemgetter(1),
+                reverse=True,
+            )[0][0]
+        )
+        if len(col_stats.pattern_stats) >= 2:
+            mod_pattern.append(
+                sorted(
+                    col_stats.pattern_stats.items(),
+                    key=operator.itemgetter(1),
+                    reverse=True,
+                )[1][0]
+            )
+        ner = None
+        if "TEXT_KOR" in mod_pattern or col_stats.column_type == "NUMBER":
+            _, stats = self.predict_ner(column, column_name)
+            if len(stats[column_name]) == 0:
+                pass
+            else:
+                mod_ner = sorted(
+                    stats[column_name].items(), key=operator.itemgetter(1), reverse=True
+                )[0][0]
+                ner = self.convert_ner(mod_ner)
+        return ner
 
     def cal_row_missing_rate(self):
         rate_percentile = {
@@ -318,7 +409,7 @@ class DataQuality:
         else:
             column_info["column_pattern"] = col_stats.column_pattern
 
-        column_info["ner_entity"] = col_stats.ner
+        column_info["named_entity_recognition"] = col_stats.ner
 
         column_info["row_count"] = col_stats.row_count
         column_info["missing_count"] = col_stats.missing_count

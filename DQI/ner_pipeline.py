@@ -42,11 +42,9 @@ if is_torch_available():
 logger = logging.getLogger(__name__)
 
 
-def custom_encode_plus(sentence,
-                       tokenizer,
-                       return_tensors=None):
+def custom_encode_plus(sentence, tokenizer, return_tensors=None):
     # {'input_ids': [2, 10841, 10966, 10832, 10541, 21509, 27660, 18, 3], 'token_type_ids': [0, 0, 0, 0, 0, 0, 0, 0, 0]}
-    #words = sentence.split()
+    # words = sentence.split()
     words = sentence.tolist()
 
     tokens = []
@@ -87,19 +85,27 @@ def custom_encode_plus(sentence,
         encoded_inputs["input_ids"] = tf.constant([encoded_inputs["input_ids"]])
 
         if "token_type_ids" in encoded_inputs:
-            encoded_inputs["token_type_ids"] = tf.constant([encoded_inputs["token_type_ids"]])
+            encoded_inputs["token_type_ids"] = tf.constant(
+                [encoded_inputs["token_type_ids"]]
+            )
 
         if "attention_mask" in encoded_inputs:
-            encoded_inputs["attention_mask"] = tf.constant([encoded_inputs["attention_mask"]])
+            encoded_inputs["attention_mask"] = tf.constant(
+                [encoded_inputs["attention_mask"]]
+            )
 
     elif return_tensors == "pt" and is_torch_available():
         encoded_inputs["input_ids"] = torch.tensor([encoded_inputs["input_ids"]])
 
         if "token_type_ids" in encoded_inputs:
-            encoded_inputs["token_type_ids"] = torch.tensor([encoded_inputs["token_type_ids"]])
+            encoded_inputs["token_type_ids"] = torch.tensor(
+                [encoded_inputs["token_type_ids"]]
+            )
 
         if "attention_mask" in encoded_inputs:
-            encoded_inputs["attention_mask"] = torch.tensor([encoded_inputs["attention_mask"]])
+            encoded_inputs["attention_mask"] = torch.tensor(
+                [encoded_inputs["attention_mask"]]
+            )
 
     elif return_tensors is not None:
         logger.warning(
@@ -161,7 +167,7 @@ class NerPipeline(Pipeline):
         binary_output: bool = False,
         ignore_labels=["O"],
         task: str = "",
-        ignore_special_tokens: bool = True
+        ignore_special_tokens: bool = True,
     ):
         super().__init__(
             model=model,
@@ -178,14 +184,12 @@ class NerPipeline(Pipeline):
         self.ignore_special_tokens = ignore_special_tokens
 
     def data_ner(self, column, name):
-        stats = {name : {}}
+        ner_stats = {name: {}}
         # Manage correct placement of the tensors
         with self.device_placement():
             # [FIX] Split token by word-level
             tokens, words, tokens_mask = custom_encode_plus(
-                column,
-                self.tokenizer,
-                return_tensors=self.framework
+                column, self.tokenizer, return_tensors=self.framework
             )
 
             # Forward
@@ -214,7 +218,7 @@ class NerPipeline(Pipeline):
         word_idx = 0
         word_level_answer = []
 
-        # NOTE: Might not be safe. BERT, ELECTRA etc. won't make issues.       
+        # NOTE: Might not be safe. BERT, ELECTRA etc. won't make issues.
         if self.ignore_special_tokens:
             words = words[1:-1]
             tokens_mask = tokens_mask[1:-1]
@@ -229,11 +233,8 @@ class NerPipeline(Pipeline):
                 if ans["entity"] not in self.ignore_labels:
                     word_level_answer.append(ans)
 
-                    if ans["entity"] not in stats[name]:
-                        stats[name][ans["entity"]] = 0
-                    stats[name][ans["entity"]] += 1
+                    if ans["entity"] not in ner_stats[name]:
+                        ner_stats[name][ans["entity"]] = 0
+                    ner_stats[name][ans["entity"]] += 1
 
-        # Append
-        answers = word_level_answer
-
-        return answers, stats
+        return word_level_answer, ner_stats

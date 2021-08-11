@@ -116,6 +116,9 @@ class AutoDataQuality(DataQuality):
 
             column = column[column != None]
 
+            if len(col_stats.pattern_stats) != 0:
+                col_stats.ner = self.get_ner(col_stats, column, column_name)
+
             (
                 col_stats.number_stats,
                 col_stats.string_stats,

@@ -4,6 +4,7 @@ from .DataQuality import ColumnStats
 import numpy as np
 import operator
 
+
 class RuleDataQuality(DataQuality):
     def __init__(self, file_path):
         super().__init__(file_path)
@@ -177,11 +178,8 @@ class RuleDataQuality(DataQuality):
 
             column = column[column != None]
 
-            _, stats = self.predict_ner(column, column_name)
-            if len(stats[column_name]) == 0:
-                col_stats.ner = None
-            else:
-                col_stats.ner = sorted(stats[column_name].items(), key=operator.itemgetter(1), reverse=True)[0][0]
+            if col_stats.column_pattern != "STATS":
+                col_stats.ner = self.get_ner(col_stats, column, column_name)
 
             (
                 col_stats.number_stats,
