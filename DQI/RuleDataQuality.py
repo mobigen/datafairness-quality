@@ -148,6 +148,8 @@ class RuleDataQuality(DataQuality):
         if column_rule == None:
             return None
 
+        print(self._df.columns)
+
         for column_name in self._df.columns:
             col_stats = ColumnStats()
             col_stats.column_name = column_name
