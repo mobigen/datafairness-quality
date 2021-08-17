@@ -25,22 +25,16 @@ class ColumnStats:
         self.quartile_stats = {}
         self.unique_stats = {}
         self.ner = None
-IRIS_INFO = {
-    'ADDR': '192.168.101.108',
-    #'ADDR': '211.232.115.81',
-    'USER_ID': 'fair',
-    'PASSWD': '!cool@fairness#4',
-    'DB_NAME': 'FAIR',
-    'TBL_NAME': 'TBL_COMPANY'
-}
 
 class DataQuality:
-    def __init__(self, file_path):
-        #self._df = pd.read_csv(file_path, header=0, dtype=str)
-        iris = IRISDB(IRIS_INFO)
-        iris.connect_db()
-        meta, select_data = iris.select_query()
-        self._df = pd.DataFrame(select_data, columns=meta)
+    def __init__(self, file_path=None, db_info=None):
+        if file_path != None:
+            self._df = pd.read_csv(file_path, header=0, dtype=str)
+        if db_info != None:
+            iris = IRISDB(db_info)
+            iris.connect_db()
+            meta, select_data = iris.select_query()
+            self._df = pd.DataFrame(select_data, columns=meta)
 
         self.table_stats = {"column_stats": []}
         self.tokenizer = ElectraTokenizer.from_pretrained(

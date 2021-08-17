@@ -29,20 +29,15 @@ class IRISDB():
                     tbl_fields=', '.join(table_fields)
                     )
 
-                print("SQL : {}".format(sql))
                 sql_values = [
                     curtime.strftime("%Y%m%d"),
                     curtime.strftime("%Y%m%d%H%M%S")
                 ]
 
                 sql_values.extend(data)
-
-                #print("BEFORE SQL VALUES : {}".format(sql_values))
                 sql_values = ', '.join(list(map(lambda v: '\''+str(v)+'\'', sql_values)))
-                #print("AFTER SQL VALUES : {}".format(sql_values))
 
                 sql = sql + f' ( {sql_values} );'
-                print(f"SQL: {' '.join(sql.split())}")
                 res = self.cur.Execute2(sql)
                 print(res)
         except Exception as e:
