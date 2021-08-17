@@ -5,8 +5,8 @@ import numpy as np
 
 
 class AutoDataQuality(DataQuality):
-    def __init__(self, file_path):
-        super().__init__(file_path)
+    def __init__(self, file_path=None, db_info=None):
+        super().__init__(file_path, db_info)
 
     def check_pattern(self, column, regex_set, regex_compile):
         pattern_stats = {}

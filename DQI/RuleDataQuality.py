@@ -2,12 +2,10 @@ from typing import AnyStr
 from .DataQuality import DataQuality
 from .DataQuality import ColumnStats
 import numpy as np
-import operator
-
 
 class RuleDataQuality(DataQuality):
-    def __init__(self, file_path):
-        super().__init__(file_path)
+    def __init__(self, file_path=None, db_info=None):
+        super().__init__(file_path, db_info)
 
     def set_rule(self, regex_set, rules):
         column_rule = {}
@@ -147,6 +145,8 @@ class RuleDataQuality(DataQuality):
         column_rule = self.set_rule(regex_set, rules)
         if column_rule == None:
             return None
+
+        print(self._df.columns)
 
         for column_name in self._df.columns:
             col_stats = ColumnStats()

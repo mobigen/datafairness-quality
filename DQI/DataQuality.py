@@ -7,6 +7,7 @@ from collections import Counter
 from dateutil.parser import parse
 from transformers import ElectraTokenizer, ElectraForTokenClassification
 from .ner_pipeline import NerPipeline
+from .IRISDB import IRISDB
 
 
 class ColumnStats:
@@ -25,10 +26,16 @@ class ColumnStats:
         self.unique_stats = {}
         self.ner = None
 
-
 class DataQuality:
-    def __init__(self, file_path):
-        self._df = pd.read_csv(file_path, header=0, dtype=str)
+    def __init__(self, file_path=None, db_info=None):
+        if file_path != None:
+            self._df = pd.read_csv(file_path, header=0, dtype=str)
+        if db_info != None:
+            iris = IRISDB(db_info)
+            iris.connect_db()
+            meta, select_data = iris.select_query()
+            self._df = pd.DataFrame(select_data, columns=meta)
+
         self.table_stats = {"column_stats": []}
         self.tokenizer = ElectraTokenizer.from_pretrained(
             "monologg/koelectra-small-finetuned-naver-ner"
