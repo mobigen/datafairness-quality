@@ -9,7 +9,10 @@ def auto_dqi(file_path=None, db_info=None):
     return result
 
 def rule_dqi(file_path=None, db_info=None):
-    with open("conf/rule.json", "r") as fd:
+    #rule_path = "conf/rule.json"
+    rule_path = "conf/rule_for_db.json"
+
+    with open(rule_path, "r") as fd:
         rules = json.load(fd)
 
     rule = RuleDataQuality(file_path, db_info)
@@ -30,9 +33,9 @@ if __name__ == "__main__":
     }
 
     #result = auto_dqi(db_info=iris_info)
-    result = auto_dqi(file_path=file_path)
+    #result = auto_dqi(file_path=file_path)
     
     #result = rule_dqi(file_path=file_path)
-    #result = rule_dqi(db_info=iris_info)
+    result = rule_dqi(db_info=iris_info)
 
     print(json.dumps(result, indent=3, ensure_ascii=False))

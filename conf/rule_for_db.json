@@ -1,0 +1,88 @@
+{
+    "rules": [
+        {
+            "column" : "PARTITION_ID",
+            "rule" : "STATS"
+        },
+        {
+            "column" : "PARTITION_DATE",
+            "rule" : "STATS"
+        },
+        {
+            "column" : "STATUS",
+            "rule" : "STATS"
+        },
+        {
+            "column" : "MESSAGE",
+            "rule" : "KR_NAME"
+        },
+        {
+            "column" : "CORP_CODE",
+            "rule" : "STATS"
+        },
+        {
+            "column" : "CORP_NAME",
+            "rule" : "TEXT"
+        },
+        {
+            "column" : "CORP_NAME_ENG",
+            "rule" : "TEXT"
+        },
+        {
+            "column" : "STOCK_NAME",
+            "rule" : "TEXT" 
+        },
+        {
+            "column" : "STOCK_CODE",
+            "rule" : "STATS"
+        },
+        {
+            "column" : "CEO_NM",
+            "rule" : "KR_NAME"
+        },
+        {
+            "column" : "CORP_CLS",
+            "rule" : "STATS"
+        },
+        {
+            "column" : "JURIR_NO",
+            "rule" : "CORP_NO"
+        },
+        {
+            "column" : "BIZR_NO",
+            "rule" : "BIZ_NO"
+        },
+        {
+            "column" : "ADRES",
+            "rule" : "ADDRESS"
+        },
+        {
+            "column" : "HM_URL",
+            "rule" : "URL"
+        },
+        {
+            "column" : "IR_URL",
+            "rule" : "STATS"
+        },
+        {
+            "column" : "PHN_NO",
+            "rule" : "PHONE"
+        },
+        {
+            "column" : "FAX_NO",
+            "rule" : "PHONE"
+        },
+        {
+            "column" : "INDUTY_CODE",
+            "rule" : "STATS"
+        },
+        {
+            "column" : "EST_DT",
+            "rule" : "DATETIME"
+        },
+        {
+            "column" : "ACC_MT",
+            "rule" : "MONTH"
+        }
+    ]
+}
