@@ -1,0 +1,50 @@
+{
+    "regex" : [
+        {
+            "name" : "REGEX_1",
+            "expression" : "[\u3131-\uD7A3]{1,1000}"
+        },
+        {
+            "name" : "REGEX_2",
+            "expression" : "[\u3131-\uD7A3]{1,1001}"
+        }
+    ],
+    "regex_set" : [
+        {
+            "name" : "SET_1",
+            "regex_name" : "REGEX_1"
+        },
+        {
+            "name" : "SET_2",
+            "regex_name" : "REGEX_2"
+        }
+    ],
+    "range" : [
+        {
+            "name" : "RANGE_1",
+            "min" : "10",
+            "max" : "100"
+        },
+        {
+            "name" : "RANGE_2",
+            "min" : "20",
+            "max" : "200"
+        }
+    ],
+    "bin_regex_set" : [
+        {
+            "set_name" : "SET_1"
+        },
+        {
+            "set_name" : "SET_2"
+        }
+    ],
+    "unique_regex_set" : [
+        {
+            "set_name" : "SET_1"
+        },
+        {
+            "set_name" : "SET_2"
+        }  
+    ]
+}
