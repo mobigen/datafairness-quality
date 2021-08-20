@@ -27,15 +27,15 @@ class ColumnStats:
         self.ner = None
 
 class DataQuality:
-    def __init__(self, file_path=None, db_info=None):
+    def __init__(self, file_path=None, db_info=None, table_name=None):
         if file_path != None:
             self._df = pd.read_csv(file_path, header=0, dtype=str)
-        if db_info != None:
+        if table_name != None:
             iris = IRISDB(db_info)
             iris.connect_db()
-            meta, select_data = iris.select_query()
+            meta, select_data = iris.select_query(table_name)
             self._df = pd.DataFrame(select_data, columns=meta)
-
+        self.db_info = db_info
         self.table_stats = {"column_stats": []}
         self.tokenizer = ElectraTokenizer.from_pretrained(
             "monologg/koelectra-small-finetuned-naver-ner"
@@ -43,6 +43,36 @@ class DataQuality:
         self.model = ElectraForTokenClassification.from_pretrained(
             "monologg/koelectra-small-finetuned-naver-ner"
         )
+
+    def set_rule_for_db(self):
+        table_list = ["REGEX", "REGEX_SET", "RANGE", "BIN_SET", "UNIQUE_SET"]
+        regex = {}
+        regex_compile = {}
+        regex_set = {}
+        unique_regex = []
+        bin_regex = []
+        range_info = {}
+        
+        db = IRISDB(self.db_info)
+        db.connect_db()
+        for table_name in table_list:
+            _, select_data = db.select_query(table_name)
+            for data in select_data:
+                if table_name == "REGEX":
+                    regex[data[0]] = data[1]
+                elif table_name == "REGEX_SET":
+                    regex_set[data[0]] = data[1].split(",")
+                elif table_name == "RANGE":
+                    range = data[1].split(",")
+                    range_info[data[0]] = {"min": int(range[0]), "max": int (range[1])}
+                elif table_name == "BIN_SET":
+                    bin_regex = data[0].split(",")
+                elif table_name == "UNIQUE_SET":
+                    unique_regex = data[0].split(",")
+        
+        for key, value in regex.items():
+            regex_compile[key] = re.compile(value)
+        return regex_compile, regex_set, unique_regex, bin_regex, range_info
 
     def set_regex(self):
         config = configparser.ConfigParser()
@@ -97,7 +127,6 @@ class DataQuality:
 
     def convert_ner(self, ner_entity):
         """
-
         개체명 범주            태그     정의
         PERSON              PER     실존, 가상 등 인물명에 해당 하는 것
         FIELD               FLD     학문 분야 및 이론, 법칙, 기술 등

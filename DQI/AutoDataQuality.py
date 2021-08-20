@@ -5,8 +5,8 @@ import numpy as np
 
 
 class AutoDataQuality(DataQuality):
-    def __init__(self, file_path=None, db_info=None):
-        super().__init__(file_path, db_info)
+    def __init__(self, file_path=None, db_info=None, table_name=None):
+        super().__init__(file_path, db_info, table_name)
 
     def check_pattern(self, column, regex_set, regex_compile):
         pattern_stats = {}
@@ -90,7 +90,7 @@ class AutoDataQuality(DataQuality):
 
     def evaluation(self):
         table_dqi = {}
-        regex_compile, regex_set, unique_regex, bin_regex, _ = self.set_regex()
+        regex_compile, regex_set, unique_regex, bin_regex, _ = self.set_rule_for_db() #self.set_regex()
 
         for column_name in self._df.columns:
             col_stats = ColumnStats()
