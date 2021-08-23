@@ -1,6 +1,7 @@
+from pprint import pprint
+from DQI import IRISDB
 import configparser
-import re
-
+import json
 
 class RuleException(Exception):
     def __init__(self, message):
@@ -8,11 +9,23 @@ class RuleException(Exception):
 
 
 class DQI_RULE:
-    def __init__(self, rule_path):
-        self.rule_path = rule_path
-        self.config = configparser.ConfigParser()
-        self.config.optionxform = str  # config.ini 구문 분석 시, 대문자->소문자 변환되는 동작 비활성화
-        self.config.read(rule_path, encoding="utf-8")
+    def __init__(self, db_info=None, rule_path=None, mode="DB"):
+        self.mode = mode  # DB(IRIS) or FILE(csv)
+
+        if self.mode == "DB":
+            self.db_info = db_info
+            self.db = IRISDB(self.db_info)
+            self.db.connect_db()
+            self.config = self.select_db()
+        elif self.mode == "FILE":
+            self.rule_path = rule_path
+            self.config = configparser.ConfigParser()
+            self.config.optionxform = str  # config.ini 구문 분석 시, 대문자->소문자 변환되는 동작 비활성화
+            self.config.read(rule_path, encoding="utf-8")
+
+    def write_config(self):
+        with open(self.rule_path, "w", encoding="utf-8") as fd:
+            self.config.write(fd)
 
     def split_rule(self, rule):
         regex_rule = []
@@ -43,10 +56,30 @@ class DQI_RULE:
             unique_regex_set_rule,
         )
 
-    def write_config(self):
-        # with open(self.rule_path, "w", encoding="utf-8") as fd:
-        with open("test_config.ini", "w", encoding="utf-8") as fd:
-            self.config.write(fd)
+    def select_db(self):
+        table_list = ["REGEX", "REGEX_SET", "RANGE", "BIN_SET", "UNIQUE_SET"]
+        config = {
+            "REGEX": {},
+            "REGEX_SET": {},
+            "RANGE": {},
+            "BIN_SET": {"BIN": {}},
+            "UNIQUE_SET": {"UNIQUE": {}},
+        }
+
+        for table_name in table_list:
+            _, select_data = self.db.select_query(table_name)
+            for data in select_data:
+                if (
+                    table_name == "REGEX"
+                    or table_name == "REGEX_SET"
+                    or table_name == "RANGE"
+                ):
+                    config[table_name][data[0]] = data[1]
+                elif table_name == "BIN_SET":
+                    config[table_name]["BIN"] = data[0]
+                elif table_name == "UNIQUE_SET":
+                    config[table_name]["UNIQUE"] = data[0]
+        return config
 
     def set_rule(self, set_rule):
         (
@@ -64,6 +97,13 @@ class DQI_RULE:
                     "[REGEX] already exist REGEX Key : {}".format(regex["name"])
                 )
             else:
+                # insert
+                if self.mode == "DB":
+                    self.db.insert_query(
+                        "REGEX",
+                        ["NAME", "EXPRESSION"],
+                        [[regex["name"], regex["expression"]]],
+                    )
                 self.config["REGEX"][regex["name"]] = regex["expression"]
         # REGEX_SET
         for regex_set in regex_set_rule:
@@ -81,11 +121,30 @@ class DQI_RULE:
                             )
                         )
                     else:
-                        self.config["REGEX_SET"][regex_set["name"]] = "{},{}".format(
+                        # update
+                        update_data = "{},{}".format(
                             self.config["REGEX_SET"][regex_set["name"]],
                             regex_set["regex_name"],
                         )
+                        if self.mode == "DB":
+                            where_datas = [regex_set["name"]]
+                            update_datas = [update_data]
+                            self.db.update_query(
+                                "REGEX_SET",
+                                ["REGEX_NAME"],
+                                update_datas,
+                                ["NAME"],
+                                where_datas,
+                            )
+                        self.config["REGEX_SET"][regex_set["name"]] = update_data
                 else:
+                    # insert
+                    if self.mode == "DB":
+                        self.db.insert_query(
+                            "REGEX_SET",
+                            ["NAME", "REGEX_NAME"],
+                            [[regex_set["name"], regex_set["regex_name"]]],
+                        )
                     self.config["REGEX_SET"][regex_set["name"]] = regex_set[
                         "regex_name"
                     ]
@@ -96,9 +155,13 @@ class DQI_RULE:
                     "[REGEX] already exist RANGE Key : {}".format(range["name"])
                 )
             else:
-                self.config["RANGE"][range["name"]] = "{},{}".format(
-                    range["min"], range["max"]
-                )
+                # insert
+                range_info = "{},{}".format(range["min"], range["max"])
+                if self.mode == "DB":
+                    self.db.insert_query(
+                        "RANGE", ["NAME", "RANGE"], [[range["name"], range_info]]
+                    )
+                self.config["RANGE"][range["name"]] = range_info
         # BIN_SET
         for bin_regex_set in bin_regex_set_rule:
             bin_list = self.config["BIN_SET"]["BIN"].split(",")
@@ -116,7 +179,19 @@ class DQI_RULE:
                         )
                     )
                 else:
+                    # update
+                    where_datas = [",".join(bin_list)]
                     bin_list.append(bin_regex_set["set_name"])
+                    update_datas = [",".join(bin_list)]
+
+                    if self.mode == "DB":
+                        self.db.update_query(
+                            "BIN_SET",
+                            ["SET_NAME"],
+                            update_datas,
+                            ["SET_NAME"],
+                            where_datas,
+                        )
                     self.config["BIN_SET"]["BIN"] = ",".join(bin_list)
         # UNIQUE_SET
         for unique_regex_set in unique_regex_set_rule:
@@ -135,10 +210,23 @@ class DQI_RULE:
                         )
                     )
                 else:
+                    # update
+                    where_datas = [",".join(unique_list)]
                     unique_list.append(unique_regex_set["set_name"])
+                    update_datas = [",".join(unique_list)]
+                    if self.mode == "DB":
+                        self.db.update_query(
+                            "UNIQUE_SET",
+                            ["SET_NAME"],
+                            update_datas,
+                            ["SET_NAME"],
+                            where_datas,
+                        )
                     self.config["UNIQUE_SET"]["UNIQUE"] = ",".join(unique_list)
+
         # Write config
-        self.write_config()
+        if self.mode == "FILE":
+            self.write_config()
 
     def delete_rule(self, del_rule):
         (
@@ -159,7 +247,13 @@ class DQI_RULE:
                     )
                 )
             else:
+                where_datas = [",".join(bin_list)]
                 bin_list.remove(bin_regex_set["set_name"])
+                update_datas = [",".join(bin_list)]
+                if self.mode == "DB":
+                    self.db.update_query(
+                        "BIN_SET", ["SET_NAME"], update_datas, ["SET_NAME"], where_datas
+                    )
                 self.config["BIN_SET"]["BIN"] = ",".join(bin_list)
         # UNIQUE_SET
         for unique_regex_set in unique_regex_set_rule:
@@ -171,7 +265,18 @@ class DQI_RULE:
                     )
                 )
             else:
+                where_datas = [",".join(unique_list)]
                 unique_list.remove(unique_regex_set["set_name"])
+                update_datas = [",".join(unique_list)]
+
+                if self.mode == "DB":
+                    self.db.update_query(
+                        "UNIQUE_SET",
+                        ["SET_NAME"],
+                        update_datas,
+                        ["SET_NAME"],
+                        where_datas,
+                    )
                 self.config["UNIQUE_SET"]["UNIQUE"] = ",".join(unique_list)
         # REGEX_SET
         for regex_set in regex_set_rule:
@@ -190,7 +295,11 @@ class DQI_RULE:
                         )
                     )
                 else:
-                    self.config.remove_option("REGEX_SET", regex_set["name"])
+                    if self.mode == "DB":
+                        self.db.delete_query("REGEX_SET", "NAME", regex_set["name"])
+                        del self.config["REGEX_SET"][regex_set["name"]]
+                    elif self.mode == "FILE":
+                        self.config.remove_option("REGEX_SET", regex_set["name"])
         # REGEX
         for regex in regex_rule:
             if regex["name"] not in self.config["REGEX"]:
@@ -205,8 +314,11 @@ class DQI_RULE:
                                 regex["name"]
                             )
                         )
-                    else:
-                        self.config.remove_option("REGEX", regex["name"])
+                if self.mode == "DB":
+                    self.db.delete_query("REGEX", "NAME", regex["name"])
+                    del self.config["REGEX"][regex["name"]]
+                elif self.mode == "FILE":
+                    self.config.remove_option("REGEX", regex["name"])
         # RANGE
         for range in range_rule:
             if range["name"] not in self.config["RANGE"]:
@@ -214,10 +326,14 @@ class DQI_RULE:
                     "[RANGE] not exist RANGE Key : {}".format(range["name"])
                 )
             else:
-                self.config.remove_option("RANGE", range["name"])
-
+                if self.mode == "DB":
+                    self.db.delete_query("RANGE", "NAME", range["name"])
+                    del self.config["RANGE"][range["name"]]
+                elif self.mode == "FILE":
+                    self.config.remove_option("RANGE", range["name"])
         # Write config
-        self.write_config()
+        if self.mode == "FILE":
+            self.write_config()
 
     def display_rule(self):
         dis_rule = {
@@ -227,34 +343,34 @@ class DQI_RULE:
             "bin_regex_set": [],
             "unique_regex_set": [],
         }
-        
+
         for name, expression in self.config["REGEX"].items():
-            tmp = {"name" : name, "expression" : expression}
+            tmp = {"name": name, "expression": expression}
             dis_rule["regex"].append(tmp)
-        
+
         for name, regex_name in self.config["REGEX_SET"].items():
-            tmp = {"name" : name, "regex_name" : regex_name}
+            tmp = {"name": name, "regex_name": regex_name}
             dis_rule["regex_set"].append(tmp)
 
         for name, range in self.config["RANGE"].items():
             range = range.split(",")
-            tmp = {"name" : name, "min": range[0], "max": range[1]}
+            tmp = {"name": name, "min": range[0], "max": range[1]}
             dis_rule["range"].append(tmp)
 
         bin_list = self.config["BIN_SET"]["BIN"].split(",")
         for set_name in bin_list:
-            tmp = {"set_name" : set_name}
+            tmp = {"set_name": set_name}
             dis_rule["bin_regex_set"].append(tmp)
 
         unique_list = self.config["UNIQUE_SET"]["UNIQUE"].split(",")
         for set_name in unique_list:
-            tmp = {"set_name" : set_name}
+            tmp = {"set_name": set_name}
             dis_rule["unique_regex_set"].append(tmp)
+        print(json.dumps(dis_rule, indent=3, ensure_ascii=False))
 
         return dis_rule
 
 
-import json
 def read_rule():
     recv_rule = None
     with open("RULE/regex_rule.json", "r") as fd:
@@ -265,13 +381,16 @@ def read_rule():
 if __name__ == "__main__":
     recv_rule = read_rule()
 
-    rule_path = "conf/config_test.ini"
-    #rule_path = "test_config.ini"
-    dqi_rule = DQI_RULE(rule_path)
-    try:
-        dqi_rule.set_rule(recv_rule)
-        #dqi_rule.delete_rule(recv_rule)
-        dis_rule = dqi_rule.display_rule()
-        print(json.dumps(dis_rule, indent=3, ensure_ascii=False))
-    except Exception as e:
-        print("ERROR : {}".format(e))
+    db_info = {
+        "ADDR": "192.168.101.108",
+        #'ADDR': '211.232.115.81',
+        "USER_ID": "fair",
+        "PASSWD": "!cool@fairness#4",
+        "DB_NAME": "FAIR",
+    }
+    #rule_db = DQI_RULE_DB(db_info=db_info, mode="DB")
+    rule_db = DQI_RULE(rule_path="test.ini", mode="FILE")
+    #rule_db.set_rule(recv_rule)
+    rule_db.delete_rule(recv_rule)
+    rule_db.display_rule()
+    del rule_db

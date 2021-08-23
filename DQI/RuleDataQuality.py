@@ -4,8 +4,8 @@ from .DataQuality import ColumnStats
 import numpy as np
 
 class RuleDataQuality(DataQuality):
-    def __init__(self, file_path=None, db_info=None):
-        super().__init__(file_path, db_info)
+    def __init__(self, file_path=None, db_info=None, table_name=None):
+        super().__init__(file_path, db_info, table_name)
 
     def set_rule(self, regex_set, rules):
         column_rule = {}
@@ -63,7 +63,6 @@ class RuleDataQuality(DataQuality):
         for data in column:
             if data == None:
                 continue
-
             for pattern_name in regex_set[set_name]:
                 result = self.regex_match(
                     pattern_name, regex_compile[pattern_name], data
@@ -140,7 +139,7 @@ class RuleDataQuality(DataQuality):
             unique_regex,
             bin_regex,
             range_info,
-        ) = self.set_regex()
+        ) = self.set_rule_for_db() #= self.set_regex()
 
         column_rule = self.set_rule(regex_set, rules)
         if column_rule == None:
