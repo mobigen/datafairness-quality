@@ -70,6 +70,7 @@ class DataQuality:
                 elif table_name == "UNIQUE_SET":
                     unique_regex = data[0].split(",")
         
+        del db
         for key, value in regex.items():
             regex_compile[key] = re.compile(value)
         return regex_compile, regex_set, unique_regex, bin_regex, range_info

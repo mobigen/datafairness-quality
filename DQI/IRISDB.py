@@ -1,4 +1,5 @@
 import datetime as dt
+import json
 import DQI.M6 as M6
 
 class IRISDB():
@@ -17,7 +18,7 @@ class IRISDB():
         except Exception as e:
             print(e)
 
-    def insert_query_for_global(self, table_name, table_fields, insert_data):
+    def insert_query(self, table_name, table_fields, insert_data):
         try:
             for data in insert_data:
                 sql = 'INSERT INTO {tbl_name} ({tbl_fields}) VALUES'.format(
@@ -34,26 +35,31 @@ class IRISDB():
         except Exception as e:
             print(e)
 
-    def insert_query(self, table_name, table_fields, insert_data):
+    def delete_query(self, table_name, table_field, delete_data):
         try:
-            for data in insert_data:
-                curtime = dt.datetime.now()
-                sql = 'INSERT INTO {tbl_name} ({tbl_fields}) VALUES'.format(
-                    tbl_name=table_name,
-                    tbl_fields=', '.join(table_fields)
-                    )
+            sql = "DELETE FROM {} WHERE {}=\'{}\';".format(table_name, table_field, delete_data)
+            print(sql)
+            res = self.cur.Execute2(sql)
+            print(res)
+        except Exception as e:
+            print(e)
 
-                sql_values = [
-                    curtime.strftime("%Y%m%d"),
-                    curtime.strftime("%Y%m%d%H%M%S")
-                ]
+    def update_query(self, table_name, update_fields, update_datas, where_fields, where_datas):
+        try:
+            update_info = []
+            for index, field in enumerate(update_fields):
+                tmp = "{}=\'{}\'".format(field, update_datas[index])
+                update_info.append(tmp)
+            
+            where_info = []
+            for index, field in enumerate(where_fields):
+                tmp = "{}=\'{}\'".format(field, where_datas[index])
+                where_info.append(tmp)
 
-                sql_values.extend(data)
-                sql_values = ', '.join(list(map(lambda v: '\''+str(v)+'\'', sql_values)))
-
-                sql = sql + f' ( {sql_values} );'
-                res = self.cur.Execute2(sql)
-                print(res)
+            sql = "UPDATE {} SET {} WHERE {};".format(table_name, ",".join(update_info), ",".join(where_info))
+            print(sql)
+            res = self.cur.Execute2(sql)
+            print(res)        
         except Exception as e:
             print(e)
 
