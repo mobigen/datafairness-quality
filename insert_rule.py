@@ -1,4 +1,4 @@
-from DQI import IRISDB
+from DB.IRISDB import IRISDB
 import configparser
 
 def rule_insert():

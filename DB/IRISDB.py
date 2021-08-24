@@ -1,6 +1,5 @@
 import datetime as dt
-import json
-import DQI.M6 as M6
+import DB.M6 as M6
 
 class IRISDB():
     def __init__(self, iris_info):

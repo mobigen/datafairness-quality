@@ -1,7 +1,7 @@
 from pprint import pprint
-from DQI import IRISDB
+from DB.IRISDB import IRISDB
 import configparser
-import json
+
 
 class RuleException(Exception):
     def __init__(self, message):
@@ -10,7 +10,7 @@ class RuleException(Exception):
 
 class DQI_RULE:
     def __init__(self, db_info=None, rule_path=None, mode="DB"):
-        self.mode = mode  # DB(IRIS) or FILE(csv)
+        self.mode = mode  # DB : (IRIS) or FILE : (csv)
 
         if self.mode == "DB":
             self.db_info = db_info
@@ -295,11 +295,40 @@ class DQI_RULE:
                         )
                     )
                 else:
-                    if self.mode == "DB":
-                        self.db.delete_query("REGEX_SET", "NAME", regex_set["name"])
-                        del self.config["REGEX_SET"][regex_set["name"]]
-                    elif self.mode == "FILE":
-                        self.config.remove_option("REGEX_SET", regex_set["name"])
+                    regex_list = self.config["REGEX_SET"][regex_set["name"]].split(",")
+                    if regex_set["regex_name"] not in regex_list:
+                        raise RuleException(
+                            "[REGEX_SET] not exist REGEX Key : {}".format(
+                                regex_set["regex_name"]
+                            )
+                        )
+                    else:
+                        regex_list.remove(regex_set["regex_name"])
+                        if len(regex_list) == 0:
+                            if self.mode == "DB":
+                                self.db.delete_query(
+                                    "REGEX_SET", "NAME", regex_set["name"]
+                                )
+                                del self.config["REGEX_SET"][regex_set["name"]]
+                            elif self.mode == "FILE":
+                                self.config.remove_option(
+                                    "REGEX_SET", regex_set["name"]
+                                )
+                        else:
+                            if self.mode == "DB":
+                                where_datas = [regex_set["name"]]
+                                update_datas = [",".join(regex_list)]
+                                self.db.update_query(
+                                    "REGEX_SET",
+                                    ["REGEX_NAME"],
+                                    update_datas,
+                                    ["NAME"],
+                                    where_datas,
+                                )
+                            self.config["REGEX_SET"][regex_set["name"]] = ",".join(
+                                regex_list
+                            )
+
         # REGEX
         for regex in regex_rule:
             if regex["name"] not in self.config["REGEX"]:
@@ -366,31 +395,5 @@ class DQI_RULE:
         for set_name in unique_list:
             tmp = {"set_name": set_name}
             dis_rule["unique_regex_set"].append(tmp)
-        print(json.dumps(dis_rule, indent=3, ensure_ascii=False))
 
         return dis_rule
-
-
-def read_rule():
-    recv_rule = None
-    with open("RULE/regex_rule.json", "r") as fd:
-        recv_rule = json.load(fd)
-    return recv_rule
-
-
-if __name__ == "__main__":
-    recv_rule = read_rule()
-
-    db_info = {
-        "ADDR": "192.168.101.108",
-        #'ADDR': '211.232.115.81',
-        "USER_ID": "fair",
-        "PASSWD": "!cool@fairness#4",
-        "DB_NAME": "FAIR",
-    }
-    #rule_db = DQI_RULE_DB(db_info=db_info, mode="DB")
-    rule_db = DQI_RULE(rule_path="test.ini", mode="FILE")
-    #rule_db.set_rule(recv_rule)
-    rule_db.delete_rule(recv_rule)
-    rule_db.display_rule()
-    del rule_db
