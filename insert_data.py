@@ -1,5 +1,5 @@
 import csv
-from DQI import IRISDB
+from DB.IRISDB import IRISDB
 
 def read_csv(file_path):
      insert_data = []

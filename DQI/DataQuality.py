@@ -7,7 +7,7 @@ from collections import Counter
 from dateutil.parser import parse
 from transformers import ElectraTokenizer, ElectraForTokenClassification
 from .ner_pipeline import NerPipeline
-from .IRISDB import IRISDB
+from DB.IRISDB import IRISDB
 
 
 class ColumnStats:

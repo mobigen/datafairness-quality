@@ -21,6 +21,8 @@ if __name__ == "__main__":
     rule_db = DQI_RULE(db_info=db_info, mode="DB")
     #rule_db = DQI_RULE(rule_path="test.ini", mode="FILE")
     #rule_db.set_rule(recv_rule)
-    #rule_db.delete_rule(recv_rule)
-    rule_db.display_rule()
+    rule_db.delete_rule(recv_rule)
+    dis_rule = rule_db.display_rule()
+    print(json.dumps(dis_rule, indent=3, ensure_ascii=False))
+
     del rule_db

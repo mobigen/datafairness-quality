@@ -31,11 +31,11 @@ def dqi_test():
         'DB_NAME': 'FAIR',
     }
 
-    #result = auto_dqi(db_info=iris_info, table_name = "TBL_COMPANY")
+    result = auto_dqi(db_info=iris_info, table_name = "DQI_DATA")
     #result = auto_dqi(file_path=file_path, db_info=iris_info)
     
     #result = rule_dqi(file_path=file_path, db_info=iris_info)
-    result = rule_dqi(db_info=iris_info, table_name = "DQI_DATA")
+    #result = rule_dqi(db_info=iris_info, table_name = "DQI_DATA")
 
     print(json.dumps(result, indent=3, ensure_ascii=False))
 

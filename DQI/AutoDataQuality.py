@@ -91,12 +91,13 @@ class AutoDataQuality(DataQuality):
     def evaluation(self):
         table_dqi = {}
         regex_compile, regex_set, unique_regex, bin_regex, _ = self.set_rule_for_db() #self.set_regex()
-
         for column_name in self._df.columns:
             col_stats = ColumnStats()
             col_stats.column_name = column_name
             col_stats.row_count = len(self._df[column_name])
-
+            
+            self._df[column_name] = self._df[column_name].replace(r'^\s*$', np.NaN, regex=True)
+            
             column = np.where(
                 self._df[column_name].isnull(), None, self._df[column_name]
             )
