@@ -18,8 +18,8 @@ class IRISDB():
             print(e)
 
     def insert_query(self, table_name, table_fields, insert_data):
-        try:
-            for data in insert_data:
+        for data in insert_data:
+            try:
                 sql = 'INSERT INTO {tbl_name} ({tbl_fields}) VALUES'.format(
                     tbl_name=table_name,
                     tbl_fields=', '.join(table_fields)
@@ -31,8 +31,8 @@ class IRISDB():
                 print(sql)
                 res = self.cur.Execute2(sql)
                 print(res)
-        except Exception as e:
-            print(e)
+            except Exception as e:
+                print(e)
 
     def delete_query(self, table_name, table_field, delete_data):
         try:
@@ -69,8 +69,7 @@ class IRISDB():
         try:
             res = self.cur.Execute2("SELECT * FROM {};".format(table_name))
             print(res)
-            self.cur.ReadData()
-            select_data = self.cur.buffer
+            select_data = self.cur.Fetchall()
             meta = self.cur.Metadata()
         except Exception as e:
             print(e)

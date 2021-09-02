@@ -39,10 +39,10 @@ def data_insert():
         'PASSWD': '!cool@fairness#4',
         'DB_NAME': 'FAIR',
     }
-    insert_data = read_csv("/Users/cbc/DEV/Mobigen/datafairness-quality-backup/sample_data/company_100.csv")
+    insert_data = read_csv("/Users/cbc/DEV/Mobigen/datafairness-quality/sample_data/company_5000.csv")
     iris = IRISDB(iris_info)
     iris.connect_db()
-    iris.insert_query("DQI_DATA", tbl_fields, insert_data[1:])
+    iris.insert_query("DQI_DATA_5000", tbl_fields, insert_data[1:])
     del iris
 
 if __name__ == "__main__":

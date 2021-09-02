@@ -30,8 +30,8 @@ def dqi_test():
         'PASSWD': '!cool@fairness#4',
         'DB_NAME': 'FAIR',
     }
-
-    result = auto_dqi(db_info=iris_info, table_name = "DQI_DATA")
+    
+    result = auto_dqi(db_info=iris_info, table_name = "DQI_DATA_5000")
     #result = auto_dqi(file_path=file_path, db_info=iris_info)
     
     #result = rule_dqi(file_path=file_path, db_info=iris_info)
@@ -41,3 +41,4 @@ def dqi_test():
 
 if __name__ == "__main__":
     dqi_test()
+    
