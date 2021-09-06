@@ -25,6 +25,8 @@ class ColumnStats:
         self.quartile_stats = {}
         self.unique_stats = {}
         self.ner = None
+        self.time_distribution = None
+
 
 class DataQuality:
     def __init__(self, file_path=None, db_info=None, table_name=None):
@@ -290,8 +292,8 @@ class DataQuality:
     def check_type(self, column):
         missing_cnt = 0
         type_stats = {"NUMBER": 0, "STRING": 0, "DATETIME": 0}
-
         unique_stats = {}
+
         for data in column:
             if data == None:
                 missing_cnt += 1
@@ -308,6 +310,7 @@ class DataQuality:
             except:
                 try:
                     parse(data)
+
                     type_stats["DATETIME"] += 1
                 except Exception:
                     type_stats["STRING"] += 1
@@ -326,6 +329,21 @@ class DataQuality:
             )[0][0]
 
         return column_type, type_stats, unique_stats, missing_cnt
+
+    '''
+        time_offset
+        "Y" : year, "M" : month, "W" : week, "D" : day, "H" : hour, "T" : minute
+    '''
+    def get_time_distribution(self, df, column_name, time_offset="Y"):
+        time_distribution = {}
+        df[column_name] = pd.to_datetime(df[column_name])
+        df.set_index(column_name, drop=False, inplace=True)
+
+        time_info = df.resample(time_offset)[column_name].count()
+        for time in time_info.index:
+            time_distribution[str(time)] = time_info.loc[time]
+
+        return time_distribution
 
     def calc_quartile(self, quantile, column):
         quartile_stats = {}
@@ -493,7 +511,9 @@ class DataQuality:
                     key: value for key, value in col_stats.quartile_stats.items()
                 },
             }
-
+        elif col_stats.column_type == "DATETIME":
+            column_info["time_distrinution"] = col_stats.time_distribution
+ 
         if len(col_stats.common_stats["mode"]) != 0:
             mode_key = list(col_stats.common_stats["mode"].keys())[0]
             column_info["mode_key"] = {

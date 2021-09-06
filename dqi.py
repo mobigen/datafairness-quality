@@ -1,5 +1,6 @@
 from DQI import AutoDataQuality
 from DQI import RuleDataQuality
+from numpyencoder import NumpyEncoder
 import json
 
 def auto_dqi(file_path=None, db_info=None, table_name=None):
@@ -31,13 +32,13 @@ def dqi_test():
         'DB_NAME': 'FAIR',
     }
     
-    result = auto_dqi(db_info=iris_info, table_name = "DQI_DATA_5000")
+    result = auto_dqi(db_info=iris_info, table_name = "DQI_MOVIES")
     #result = auto_dqi(file_path=file_path, db_info=iris_info)
     
     #result = rule_dqi(file_path=file_path, db_info=iris_info)
     #result = rule_dqi(db_info=iris_info, table_name = "DQI_DATA")
 
-    print(json.dumps(result, indent=3, ensure_ascii=False))
+    print(json.dumps(result, indent=3, ensure_ascii=False, cls=NumpyEncoder))
 
 if __name__ == "__main__":
     dqi_test()

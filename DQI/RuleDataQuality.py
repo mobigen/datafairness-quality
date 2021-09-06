@@ -168,7 +168,7 @@ class RuleDataQuality(DataQuality):
                 col_stats.column_type,
                 col_stats.type_stats,
                 col_stats.unique_stats,
-                col_stats.missing_count,
+                col_stats.missing_count
             ) = self.check_type(column)
 
             quartile = self.get_quartile(len(col_stats.unique_stats))
@@ -184,6 +184,9 @@ class RuleDataQuality(DataQuality):
                 col_stats.common_stats,
                 col_stats.quartile_stats,
             ) = self.calc_statistics(col_stats.column_type, quartile, column)
+
+            if col_stats.column_type == "DATETIME":
+                col_stats.time_distribution = self.get_time_distribution(self._df, column_name)
 
             column_info = self.make_col_info(col_stats)
 
