@@ -40,10 +40,10 @@ class DataQuality:
         self.db_info = db_info
         self.table_stats = {"column_stats": []}
         self.tokenizer = ElectraTokenizer.from_pretrained(
-            "monologg/koelectra-small-finetuned-naver-ner"
+            "DQI/koelectra-small-finetuned-naver-ner"
         )
         self.model = ElectraForTokenClassification.from_pretrained(
-            "monologg/koelectra-small-finetuned-naver-ner"
+            "DQI/koelectra-small-finetuned-naver-ner"
         )
 
     def set_rule_for_db(self):

@@ -35,7 +35,7 @@ def dqi_test():
         "DB_NAME": "FAIR",
     }
 
-    result = auto_dqi(db_info=iris_info, table_name="DQI_BIOPICS")
+    result = auto_dqi(db_info=iris_info, table_name="DQI_COMPANY_5000")
     #result = auto_dqi(file_path=file_path, db_info=iris_info)
 
     #result = rule_dqi(file_path=file_path, db_info=iris_info)
