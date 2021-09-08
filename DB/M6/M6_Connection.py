@@ -9,6 +9,7 @@ from .M6_Exception import ConnectionFailException
 try:
     from Mobigen.Common import Log
     from Mobigen.Common.Log import __LOG__
+
     Log.Init()
 except:
     pass
@@ -17,19 +18,30 @@ VERSION = "Python-M6-API-2.1"
 LISTENER_PORT = 5050
 
 
-class Connection(object) :
+class Connection(object):
 
     """
     - Logmodule
         : STDOUT - stdout
         : MOBIGEN - mobigen log module
     """
-    def __init__(self, addr_info, id, password, Direct=False, Debug=False, LogModule='STDOUT', Timeout=0, Database='DEFAULT'):
+
+    def __init__(
+        self,
+        addr_info,
+        id,
+        password,
+        Direct=False,
+        Debug=False,
+        LogModule="STDOUT",
+        Timeout=0,
+        Database="DEFAULT",
+    ):
         object.__init__(self)
 
         self.addr_info = addr_info.strip().split(":")
-        self.id = id 
-        self.password = password 
+        self.id = id
+        self.password = password
         self.isDirect = Direct
         self.isDebug = Debug
         self.LogModule = LogModule
@@ -59,60 +71,68 @@ class Connection(object) :
 
         self.__connect(ip, port)
 
-        if self.isDirect :
+        if self.isDirect:
             (udm_ip, udm_port) = self.nsdConnect()
             self.__connect(udm_ip, udm_port)
 
         if self.isDebug:
             debugEndTime = time.time()
-            if self.LogModule == 'STDOUT':
+            if self.LogModule == "STDOUT":
                 print("[DEBUG_TIME] Connect() %f") % (debugEndTime - debugStartTime)
-            elif self.LogModule == 'MOBIGEN':
-                __LOG__.Trace("[DEBUG_TIME] Connect() %f" % (debugEndTime - debugStartTime))
+            elif self.LogModule == "MOBIGEN":
+                __LOG__.Trace(
+                    "[DEBUG_TIME] Connect() %f" % (debugEndTime - debugStartTime)
+                )
 
     def __connect(self, ip, port):
-        if not self.sock_ : self.sock_ = Socket()
+        if not self.sock_:
+            self.sock_ = Socket()
         if self.timeout > 0:
             self.sock_.SetTimeout(self.timeout)
 
         # try to connect
         try:
-            #if __debug__: print "Trying %s ..." % ":".join(self.addr_info)
+            # if __debug__: print "Trying %s ..." % ":".join(self.addr_info)
             self.sock_.Connect(ip, port)
-            #if __debug__: print "Connected to %s." % ":".join(self.addr_info)
+            # if __debug__: print "Connected to %s." % ":".join(self.addr_info)
         except Exception as e:
             self.close()
             raise ConnectionFailException("Unable to connect to server.[%s]" % str(e))
-            
+
         # read welcome message
         (result, msg) = self.sock_.ReadMessage()
         if not result:
             self.close()
             raise ConnectionFailException("Unable to readMessage. sock")
 
-
     def nsdConnect(self):
         self.sock_.SendMessage("GET\r\n")
         (result, msg) = self.sock_.ReadMessage()
-        if not result :
+        if not result:
             if msg.strip() == "Invalid Command":
-                raise ConnectionFailException("For DIRECT Connection, IRIS NSD PORT is required, but invalid port is given.")
+                raise ConnectionFailException(
+                    "For DIRECT Connection, IRIS NSD PORT is required, but invalid port is given."
+                )
             raise ConnectionFailException(msg)
 
         (ip, port) = msg.strip().split(":")
 
         self.sock_.SendMessage("QUIT\r\n")
-        try: self.sock_.Readline() # NSD : OK BYE
-        except: pass
-        try: self.sock_.close()
-        except: pass    
+        try:
+            self.sock_.Readline()  # NSD : OK BYE
+        except:
+            pass
+        try:
+            self.sock_.close()
+        except:
+            pass
         self.sock_ = None
         return (ip, port)
 
-    def Cursor(self) :
+    def Cursor(self):
         return self.cursor()
 
-    def cursor(self) :
+    def cursor(self):
         self.cursor_ = Cursor(self.sock_, Debug=self.isDebug, LogModule=self.LogModule)
 
         if self.isDirect:
@@ -132,21 +152,28 @@ class Connection(object) :
         print("passwd: ", self.password)
         print("cursor: ", self.cursor_)
 
-    def commit(self) :
+    def commit(self):
         pass
 
-    def close(self) :
+    def close(self):
         self.commit()
         if self.cursor_:
             self.cursor_.Close()
 
-        try: self.sock_.SendMessage("QUIT\r\n", timeOut=1)
-        except: pass
-        try: self.sock_.Readline(timeOut=1)
-        except: pass
-        try: self.sock_.close()
-        except: pass
+        try:
+            self.sock_.SendMessage("QUIT\r\n", timeOut=1)
+        except:
+            pass
+        try:
+            self.sock_.Readline(timeOut=1)
+        except:
+            pass
+        try:
+            self.sock_.close()
+        except:
+            pass
         self.sock_ = None
+
 
 def main():
 
@@ -154,7 +181,7 @@ def main():
     conn = Connection("58.181.37.135:5050", "id", "passwd")
 
     # udm
-    #conn = Connection("10.0.0.1:5100", "id", "passwd", Direct=True)
+    # conn = Connection("10.0.0.1:5100", "id", "passwd", Direct=True)
 
     c = conn.Cursor()
     c.SetRecordSep("|^|")
@@ -166,8 +193,9 @@ def main():
     for a in c:
         print(",".join(a))
 
-    #conn.toPrint()
+    # conn.toPrint()
     conn.close()
+
 
 def testDirectConnect():
     conn = Connection("58.181.37.135:5000", "test", "test", Direct=True)
@@ -182,8 +210,9 @@ def testDirectConnect():
     for a in c:
         print(",".join(a))
 
-    #conn.toPrint()
+    # conn.toPrint()
     conn.close()
+
 
 def testInvalidPort():
     conn = Connection("58.181.37.135:5050", "test", "test", Direct=True)
@@ -198,8 +227,9 @@ def testInvalidPort():
     for a in c:
         print(",".join(a))
 
-    #conn.toPrint()
+    # conn.toPrint()
     conn.close()
+
 
 def testInvalidPw():
     conn = Connection("58.181.37.135:5050", "test", "tesdt")
@@ -214,15 +244,15 @@ def testInvalidPw():
     for a in c:
         print(",".join(a))
 
-    #conn.toPrint()
+    # conn.toPrint()
     conn.close()
 
 
 if __name__ == "__main__":
-    try :
-        #main()
-        #testDirectConnect()
-        #testInvalidPort()
+    try:
+        # main()
+        # testDirectConnect()
+        # testInvalidPort()
         testInvalidPw()
 
     except Exception as e:

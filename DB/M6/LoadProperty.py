@@ -1,6 +1,7 @@
 import json
 
-class LoadProperty():
+
+class LoadProperty:
     def __init__(self):
         self._is_csv_dat = False
         self._is_unique_load = False
@@ -35,12 +36,11 @@ class LoadProperty():
 
     def to_str(self):
         dump_data = {
-            'is_csv_dat': self._is_csv_dat,
-            'is_unique_load': self._is_unique_load,
-            'unique_load_name': self._unique_load_name,
-            'use_zlib': self._use_zlib,
-            'skip_rows': self._skip_rows
+            "is_csv_dat": self._is_csv_dat,
+            "is_unique_load": self._is_unique_load,
+            "unique_load_name": self._unique_load_name,
+            "use_zlib": self._use_zlib,
+            "skip_rows": self._skip_rows,
         }
 
         return json.dumps(dump_data)
-

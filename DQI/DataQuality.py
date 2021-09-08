@@ -54,7 +54,7 @@ class DataQuality:
         unique_regex = []
         bin_regex = []
         range_info = {}
-        
+
         db = IRISDB(self.db_info)
         db.connect_db()
         for table_name in table_list:
@@ -66,12 +66,12 @@ class DataQuality:
                     regex_set[data[0]] = data[1].split(",")
                 elif table_name == "RANGE":
                     range = data[1].split(",")
-                    range_info[data[0]] = {"min": int(range[0]), "max": int (range[1])}
+                    range_info[data[0]] = {"min": int(range[0]), "max": int(range[1])}
                 elif table_name == "BIN_SET":
                     bin_regex = data[0].split(",")
                 elif table_name == "UNIQUE_SET":
                     unique_regex = data[0].split(",")
-        
+
         del db
         for key, value in regex.items():
             regex_compile[key] = re.compile(value)
@@ -150,7 +150,6 @@ class DataQuality:
         7: 'ORG-B', 8: 'ORG-I', 9: 'LOC-B', 10: 'LOC-I', 11: 'CVL-B', 12: 'CVL-I', 13: 'DAT-B',
         14: 'DAT-I', 15: 'TIM-B', 16: 'TIM-I', 17: 'NUM-B', 18: 'NUM-I', 19: 'EVT-B', 20: 'EVT-I',
         21: 'ANM-B', 22: 'ANM-I', 23: 'PLT-B', 24: 'PLT-I', 25: 'MAT-B', 26: 'MAT-I', 27: 'TRM-B', 28: 'TRM-I'}
-
         """
         result = ""
         if "PER" in ner_entity:
@@ -184,25 +183,15 @@ class DataQuality:
 
         return result
 
-    def get_ner(self, col_stats, column, column_name):
-        mod_pattern = []
-        mod_pattern.append(
-            sorted(
-                col_stats.pattern_stats.items(),
-                key=operator.itemgetter(1),
-                reverse=True,
-            )[0][0]
-        )
-        if len(col_stats.pattern_stats) >= 2:
-            mod_pattern.append(
-                sorted(
-                    col_stats.pattern_stats.items(),
-                    key=operator.itemgetter(1),
-                    reverse=True,
-                )[1][0]
-            )
+    def get_ner(self, col_stats, column, column_name, text_kor_set):
+        f_text_kor = 0
+        for pattern in col_stats.pattern_stats.keys():
+            if pattern in text_kor_set:
+                f_text_kor = 1
+                break
         ner = None
-        if "TEXT_KOR" in mod_pattern or col_stats.column_type == "NUMBER":
+        if f_text_kor == 1 or col_stats.column_type == "NUMBER":
+            print("GET NER ({})".format(column_name))
             _, stats = self.predict_ner(column, column_name)
             if len(stats[column_name]) == 0:
                 pass
@@ -228,7 +217,7 @@ class DataQuality:
             "1.0": 0,
         }
 
-        for index, row in self._df.iterrows():
+        for _, row in self._df.iterrows():
             missing_cnt = 0
             row = np.where(row.isnull(), None, row)
             for cell in row:
@@ -287,11 +276,11 @@ class DataQuality:
             result = self.check_credit_no(data)
         elif regex_key == "CORP_NO":
             result = self.check_corp_no(data)
-        return result
+        return result        
 
     def check_type(self, column):
         missing_cnt = 0
-        type_stats = {"NUMBER": 0, "STRING": 0, "DATETIME": 0}
+        type_stats = {"NUMBER": 0, "STRING": 0} # for Type Missmatch Rate
         unique_stats = {}
 
         for data in column:
@@ -308,40 +297,32 @@ class DataQuality:
                 float(data)
                 type_stats["NUMBER"] += 1
             except:
-                try:
-                    parse(data)
+                type_stats["STRING"] += 1
 
-                    type_stats["DATETIME"] += 1
-                except Exception:
-                    type_stats["STRING"] += 1
-
-        if type_stats["STRING"] >= 1:
-            column_type = "STRING"
-        elif (
-            type_stats["NUMBER"] == 0
-            and type_stats["STRING"] == 0
-            and type_stats["DATETIME"] == 0
-        ):
+        if type_stats["NUMBER"] == 0 and type_stats["STRING"] == 0:
             column_type = None
+        elif type_stats["STRING"] >= 1:
+            column_type = "STRING"
         else:
-            column_type = sorted(
-                type_stats.items(), key=operator.itemgetter(1), reverse=True
-            )[0][0]
+            column_type = "NUMBER"
 
         return column_type, type_stats, unique_stats, missing_cnt
 
-    '''
+    """
         time_offset
         "Y" : year, "M" : month, "W" : week, "D" : day, "H" : hour, "T" : minute
-    '''
+    """
     def get_time_distribution(self, df, column_name, time_offset="Y"):
         time_distribution = {}
-        df[column_name] = pd.to_datetime(df[column_name])
-        df.set_index(column_name, drop=False, inplace=True)
+        try:
+            df[column_name] = pd.to_datetime(df[column_name])
+            df.set_index(column_name, drop=False, inplace=True)
 
-        time_info = df.resample(time_offset)[column_name].count()
-        for time in time_info.index:
-            time_distribution[str(time)] = time_info.loc[time]
+            time_info = df.resample(time_offset)[column_name].count()
+            for time in time_info.index:
+                time_distribution[str(time)] = time_info.loc[time]
+        except:
+            time_distribution = None
 
         return time_distribution
 
@@ -363,7 +344,6 @@ class DataQuality:
         string_stats = {"mean": 0, "min": {}, "max": {}, "median": 0, "std": 0}
         common_stats = {"mode": {}}
         quartile_stats = {}
-
         if len(column) != 0:
             if column_type == "NUMBER":
                 column = np.array(column, dtype=np.float64)
@@ -483,7 +463,7 @@ class DataQuality:
             )
             for index in range(len(sort_pattern))
         }
-
+        
         column_info["type"] = {
             sort_type[index][0]: "{} ({}%)".format(
                 sort_type[index][1],
@@ -511,9 +491,10 @@ class DataQuality:
                     key: value for key, value in col_stats.quartile_stats.items()
                 },
             }
-        elif col_stats.column_type == "DATETIME":
+
+        if col_stats.time_distribution != None:
             column_info["time_distrinution"] = col_stats.time_distribution
- 
+
         if len(col_stats.common_stats["mode"]) != 0:
             mode_key = list(col_stats.common_stats["mode"].keys())[0]
             column_info["mode_key"] = {
