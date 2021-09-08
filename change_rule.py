@@ -1,6 +1,7 @@
 from RULE import DQI_RULE
 import json
 
+
 def read_rule():
     recv_rule = None
     with open("RULE/regex_rule.json", "r") as fd:
@@ -19,8 +20,8 @@ if __name__ == "__main__":
         "DB_NAME": "FAIR",
     }
     rule_db = DQI_RULE(db_info=db_info, mode="DB")
-    #rule_db = DQI_RULE(rule_path="test.ini", mode="FILE")
-    #rule_db.set_rule(recv_rule)
+    # rule_db = DQI_RULE(rule_path="test.ini", mode="FILE")
+    # rule_db.set_rule(recv_rule)
     rule_db.delete_rule(recv_rule)
     dis_rule = rule_db.display_rule()
     print(json.dumps(dis_rule, indent=3, ensure_ascii=False))

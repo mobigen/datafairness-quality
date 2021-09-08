@@ -14,7 +14,7 @@
         },
         {
             "column" : "MESSAGE",
-            "rule" : "KR_NAME"
+            "rule" : "TEXT_KOR"
         },
         {
             "column" : "CORP_CODE",
@@ -22,15 +22,15 @@
         },
         {
             "column" : "CORP_NAME",
-            "rule" : "TEXT"
+            "rule" : "TEXT_KOR"
         },
         {
             "column" : "CORP_NAME_ENG",
-            "rule" : "TEXT"
+            "rule" : "TEXT_ENG"
         },
         {
             "column" : "STOCK_NAME",
-            "rule" : "TEXT" 
+            "rule" : "TEXT_KOR" 
         },
         {
             "column" : "STOCK_CODE",
@@ -38,7 +38,7 @@
         },
         {
             "column" : "CEO_NM",
-            "rule" : "KR_NAME"
+            "rule" : "TEXT_KOR"
         },
         {
             "column" : "CORP_CLS",
@@ -82,7 +82,7 @@
         },
         {
             "column" : "ACC_MT",
-            "rule" : "MONTH"
+            "rule" : "DATETIME"
         }
     ]
 }

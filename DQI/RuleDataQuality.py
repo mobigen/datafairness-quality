@@ -3,6 +3,7 @@ from .DataQuality import DataQuality
 from .DataQuality import ColumnStats
 import numpy as np
 
+
 class RuleDataQuality(DataQuality):
     def __init__(self, file_path=None, db_info=None, table_name=None):
         super().__init__(file_path, db_info, table_name)
@@ -77,6 +78,10 @@ class RuleDataQuality(DataQuality):
     def calc_col_dqi(self, column, col_stats, unique_regex, bin_regex, range_info):
         data_dqi = {}
 
+        data_dqi["missing_rate"] = self.calc_missing_rate(
+            col_stats.missing_count, col_stats.row_count
+        )
+
         if (
             col_stats.missing_count == col_stats.row_count
             or col_stats.column_pattern == "STATS"
@@ -90,10 +95,6 @@ class RuleDataQuality(DataQuality):
         max_type_cnt = sorted(
             col_stats.type_stats.items(), key=lambda x: x[1], reverse=True
         )[0][1]
-
-        data_dqi["missing_rate"] = self.calc_missing_rate(
-            col_stats.missing_count, col_stats.row_count
-        )
 
         data_dqi["type_missmatch_rate"] = self.calc_violation_rate(
             max_type_cnt, col_stats.row_count
@@ -132,14 +133,13 @@ class RuleDataQuality(DataQuality):
 
     def evaluation(self, rules):
         table_dqi = {}
-
         (
             regex_compile,
             regex_set,
             unique_regex,
             bin_regex,
             range_info,
-        ) = self.set_rule_for_db() #= self.set_regex()
+        ) = self.set_rule_for_db()
 
         column_rule = self.set_rule(regex_set, rules)
         if column_rule == None:
@@ -150,6 +150,10 @@ class RuleDataQuality(DataQuality):
             col_stats.column_name = column_name
             col_stats.column_pattern = column_rule[column_name]
             col_stats.row_count = len(self._df[column_name])
+            
+            self._df[column_name] = self._df[column_name].replace(
+                r"^\s*$", np.NaN, regex=True
+            )
 
             column = np.where(
                 self._df[column_name].isnull(), None, self._df[column_name]
@@ -176,7 +180,7 @@ class RuleDataQuality(DataQuality):
             column = column[column != None]
 
             if col_stats.column_pattern != "STATS":
-                col_stats.ner = self.get_ner(col_stats, column, column_name)
+                col_stats.ner = self.get_ner(col_stats, column, column_name, regex_set["TEXT_KOR"])
 
             (
                 col_stats.number_stats,
@@ -184,6 +188,10 @@ class RuleDataQuality(DataQuality):
                 col_stats.common_stats,
                 col_stats.quartile_stats,
             ) = self.calc_statistics(col_stats.column_type, quartile, column)
+
+            time_distribution = self.get_time_distribution(self._df, column_name)
+            if time_distribution != None:
+                col_stats.time_distribution = time_distribution
 
             column_info = self.make_col_info(col_stats)
 

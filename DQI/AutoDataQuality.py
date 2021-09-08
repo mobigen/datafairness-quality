@@ -39,6 +39,10 @@ class AutoDataQuality(DataQuality):
     def calc_col_dqi(self, column, col_stats, regex_set, unique_regex, bin_regex):
         data_dqi = {}
 
+        data_dqi["missing_rate"] = self.calc_missing_rate(
+            col_stats.missing_count, col_stats.row_count
+        )
+
         if (
             col_stats.missing_count == col_stats.row_count
             or col_stats.column_pattern == None
@@ -52,10 +56,6 @@ class AutoDataQuality(DataQuality):
         max_type_cnt = sorted(
             col_stats.type_stats.items(), key=lambda x: x[1], reverse=True
         )[0][1]
-
-        data_dqi["missing_rate"] = self.calc_missing_rate(
-            col_stats.missing_count, col_stats.row_count
-        )
 
         data_dqi["type_missmatch_rate"] = self.calc_violation_rate(
             max_type_cnt, col_stats.row_count
@@ -90,14 +90,23 @@ class AutoDataQuality(DataQuality):
 
     def evaluation(self):
         table_dqi = {}
-        regex_compile, regex_set, unique_regex, bin_regex, _ = self.set_rule_for_db() #self.set_regex()
+        (
+            regex_compile,
+            regex_set,
+            unique_regex,
+            bin_regex,
+            _,
+        ) = self.set_rule_for_db()
+
         for column_name in self._df.columns:
             col_stats = ColumnStats()
             col_stats.column_name = column_name
             col_stats.row_count = len(self._df[column_name])
-            
-            self._df[column_name] = self._df[column_name].replace(r'^\s*$', np.NaN, regex=True)
-            
+
+            self._df[column_name] = self._df[column_name].replace(
+                r"^\s*$", np.NaN, regex=True
+            )
+
             column = np.where(
                 self._df[column_name].isnull(), None, self._df[column_name]
             )
@@ -118,7 +127,7 @@ class AutoDataQuality(DataQuality):
             column = column[column != None]
 
             if len(col_stats.pattern_stats) != 0:
-                col_stats.ner = self.get_ner(col_stats, column, column_name)
+                col_stats.ner = self.get_ner(col_stats, column, column_name, regex_set["TEXT_KOR"])
 
             (
                 col_stats.number_stats,
@@ -126,6 +135,11 @@ class AutoDataQuality(DataQuality):
                 col_stats.common_stats,
                 col_stats.quartile_stats,
             ) = self.calc_statistics(col_stats.column_type, quartile, column)
+
+
+            time_distribution = self.get_time_distribution(self._df, column_name)
+            if time_distribution != None:
+                col_stats.time_distribution = time_distribution
 
             column_info = self.make_col_info(col_stats)
 
