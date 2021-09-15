@@ -1,0 +1,26 @@
+# Argrumnets for FROM
+ARG PYTHON_VERSION=3.6
+
+# Build dcf-watcher
+FROM python:${PYTHON_VERSION}-alpine
+
+RUN apk add --update --no-cache build-base \
+        linux-headers \
+        py3-cffi \
+        py3-cryptography \
+        libffi-dev \
+        bash \
+        vim \
+        curl \
+        ca-certificates && \
+    apk del curl --no-cache
+
+RUN python -m pip install --upgrade pip
+RUN python -m pip install grpcio grpcio-tools
+
+RUN mkdir -p /openfx/executor
+WORKDIR /openfx/executor
+
+COPY . .
+
+RUN pip3 install -r requirements.txt
