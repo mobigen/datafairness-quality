@@ -26,6 +26,7 @@ class ColumnStats:
         self.unique_stats = {}
         self.ner = None
         self.time_distribution = None
+        self.unknown = 0
 
 
 class DataQuality:
@@ -276,11 +277,11 @@ class DataQuality:
             result = self.check_credit_no(data)
         elif regex_key == "CORP_NO":
             result = self.check_corp_no(data)
-        return result        
+        return result
 
     def check_type(self, column):
         missing_cnt = 0
-        type_stats = {"NUMBER": 0, "STRING": 0} # for Type Missmatch Rate
+        type_stats = {"NUMBER": 0, "STRING": 0}  # for Type Missmatch Rate
         unique_stats = {}
 
         for data in column:
@@ -320,7 +321,16 @@ class DataQuality:
 
             time_info = df.resample(time_offset)[column_name].count()
             for time in time_info.index:
-                time_distribution[str(time)] = time_info.loc[time]
+                if time_offset == "Y":
+                    time_distribution[str(time)[:4]] = time_info.loc[time]
+                elif time_offset == "M":
+                    time_distribution[str(time)[:7]] = time_info.loc[time]
+                elif time_offset == "D":
+                    time_distribution[str(time)[:10]] = time_info.loc[time]
+                elif time_offset == "H":
+                    time_distribution[str(time)[:13]] = time_info.loc[time]
+                elif time_offset == "T":
+                    time_distribution[str(time)[:16]] = time_info.loc[time]
         except:
             time_distribution = None
 
@@ -349,9 +359,9 @@ class DataQuality:
                 column = np.array(column, dtype=np.float64)
                 number_stats["min"] = float(column.min())
                 number_stats["max"] = float(column.max())
-                number_stats["mean"] = float(column.mean())
-                number_stats["std"] = float(column.std())
-                number_stats["median"] = float(np.median(column))
+                number_stats["mean"] = round(float(column.mean()), 5)
+                number_stats["std"] = round(float(column.std()), 5)
+                number_stats["median"] = round(float(np.median(column)), 5)
 
                 quartile_stats = self.calc_quartile(quartile, column)
             elif column_type == "STRING":
@@ -365,9 +375,9 @@ class DataQuality:
                     "key": column[len_list.index(max(len_list))],
                     "len": max(len_list),
                 }
-                string_stats["mean"] = np.mean(len_list)
-                string_stats["std"] = np.std(len_list)
-                string_stats["median"] = np.median(len_list)
+                string_stats["mean"] = round(np.mean(len_list), 5)
+                string_stats["std"] = round(np.std(len_list), 5)
+                string_stats["median"] = round(np.median(len_list), 5)
 
             common_stats["mode"][Counter(column).most_common()[0][0]] = Counter(
                 column
@@ -377,13 +387,13 @@ class DataQuality:
 
     def calc_missing_rate(self, missing_cnt, row_cnt):
         try:
-            return missing_cnt / row_cnt
+            return (missing_cnt / row_cnt) * 100
         except ZeroDivisionError:
             return 0
 
     def calc_violation_rate(self, match_cnt, row_cnt):
         try:
-            return (row_cnt - match_cnt) / row_cnt
+            return ((row_cnt - match_cnt) / row_cnt) * 100
         except ZeroDivisionError:
             return 0
 
@@ -410,15 +420,15 @@ class DataQuality:
                 if len(data) < outlier_min or outlier_max < len(data):
                     outlier_cnt += 1
 
-        return outlier_cnt / col_stats.row_count
+        return (outlier_cnt / col_stats.row_count) * 100
 
-    def calc_uniqueness_violation_rate(self, row_cnt, unique_stats):
+    def calc_uniqueness_violation_rate(self, col_stats):
         uniqueness_violation_cnt = 0
-        for value in unique_stats.values():
+        for value in col_stats.unique_stats.values():
             if value >= 2:
                 uniqueness_violation_cnt += value - 1
 
-        return uniqueness_violation_cnt / row_cnt
+        return (uniqueness_violation_cnt / col_stats.row_count) * 100
 
     def get_quartile(self, unique_data_cnt):
         max_quartile = 10
@@ -457,17 +467,17 @@ class DataQuality:
         )
 
         column_info["pattern"] = {
-            sort_pattern[index][0]: "{} ({}%)".format(
+            sort_pattern[index][0]: "{} ({:.3f}%)".format(
                 sort_pattern[index][1],
-                int((sort_pattern[index][1] / col_stats.row_count) * 100),
+                float((sort_pattern[index][1] / col_stats.row_count) * 100),
             )
             for index in range(len(sort_pattern))
         }
-        
+
         column_info["type"] = {
-            sort_type[index][0]: "{} ({}%)".format(
+            sort_type[index][0]: "{} ({:.3f}%)".format(
                 sort_type[index][1],
-                int((sort_type[index][1] / col_stats.row_count) * 100),
+                float((sort_type[index][1] / col_stats.row_count) * 100),
             )
             for index in range(len(sort_type))
         }

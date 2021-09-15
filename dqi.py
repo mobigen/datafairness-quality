@@ -35,15 +35,17 @@ def dqi_test():
         "DB_NAME": "FAIR",
     }
 
-    result = auto_dqi(db_info=iris_info, table_name="DQI_COMPANY_5000")
-    #result = auto_dqi(file_path=file_path, db_info=iris_info)
+    result = auto_dqi(db_info=iris_info, table_name="DQI_COMPANY")
+    # result = auto_dqi(file_path=file_path, db_info=iris_info)
 
-    #result = rule_dqi(file_path=file_path, db_info=iris_info)
-    #result = rule_dqi(db_info=iris_info, table_name = "DQI_COMPANY")
+    # result = rule_dqi(file_path=file_path, db_info=iris_info)
+    # result = rule_dqi(db_info=iris_info, table_name="DQI_COMPANY_5000")
 
     print(json.dumps(result, indent=3, ensure_ascii=False, cls=NumpyEncoder))
 
+
 import time
+
 if __name__ == "__main__":
     start = time.time()
     dqi_test()
