@@ -49,24 +49,6 @@ class Ner:
     def tokenize(self, text: str):
         """ tokenize input"""
         words = word_tokenize(text)
-        tokens = []
-        valid_positions = []
-        for i,word in enumerate(words):
-            token = self.tokenizer.tokenize(word)
-            tokens.extend(token)
-            for i in range(len(token)):
-                if i == 0:
-                    valid_positions.append(1)
-                else:
-                    valid_positions.append(0)
-            print("WORD: {}".format(word))
-            print("TOKEN : {}".format(token))
-            print("VALID : {}".format(valid_positions))
-        return tokens, valid_positions
-
-    def tokenize_test(self, text: str):
-        """ tokenize input"""
-        words = word_tokenize(text)
         tokens_list = []
         tokens = []
         valid_positions_list = []
@@ -79,7 +61,7 @@ class Ner:
                     valid_positions.append(1)
                 else:
                     valid_positions.append(0)
-            if len(tokens) >= 300:
+            if len(tokens) >= 400:
                 tokens_list.append(tokens)
                 valid_positions_list.append(valid_positions)
                 valid_positions = []
@@ -92,29 +74,7 @@ class Ner:
 
     def preprocess(self, text: str):
         """ preprocess """
-        tokens, valid_positions = self.tokenize(text)
-        ## insert "[CLS]"
-        tokens.insert(0,"[CLS]")
-        valid_positions.insert(0,1)
-        ## insert "[SEP]"
-        tokens.append("[SEP]")
-        valid_positions.append(1)
-        segment_ids = []
-        for i in range(len(tokens)):
-            segment_ids.append(0)
-
-        input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
-        input_mask = [1] * len(input_ids)
-        while len(input_ids) < self.max_seq_length:
-            input_ids.append(0)
-            input_mask.append(0)
-            segment_ids.append(0)
-            valid_positions.append(0)
-        return input_ids,input_mask,segment_ids,valid_positions
-
-    def preprocess_test(self, text: str):
-        """ preprocess """
-        tokens_list, valid_positions_list = self.tokenize_test(text)
+        tokens_list, valid_positions_list = self.tokenize(text)
         input_ids_list = []
         input_mask_list = []
         segment_ids_list = []
@@ -147,39 +107,7 @@ class Ner:
         return input_ids_list, input_mask_list, segment_ids_list, return_valid_positions_list
 
     def predict(self, text: str):
-        input_ids,input_mask,segment_ids,valid_ids = self.preprocess(text)
-
-        input_ids = torch.tensor([input_ids],dtype=torch.long,device=self.device)
-        input_mask = torch.tensor([input_mask],dtype=torch.long,device=self.device)
-        segment_ids = torch.tensor([segment_ids],dtype=torch.long,device=self.device)
-        valid_ids = torch.tensor([valid_ids],dtype=torch.long,device=self.device)
-        with torch.no_grad():
-            logits = self.model(input_ids, segment_ids, input_mask,valid_ids)
-        logits = F.softmax(logits,dim=2)
-        logits_label = torch.argmax(logits,dim=2)
-        logits_label = logits_label.detach().cpu().numpy().tolist()[0]
-
-        logits_confidence = [values[label].item() for values,label in zip(logits[0],logits_label)]
-
-        logits = []
-        pos = 0
-        for index,mask in enumerate(valid_ids[0]):
-            if index == 0:
-                continue
-            if mask == 1:
-                logits.append((logits_label[index-pos],logits_confidence[index-pos]))
-            else:
-                pos += 1
-        logits.pop()
-
-        labels = [(self.label_map[label],confidence) for label,confidence in logits]
-        words = word_tokenize(text)
-        assert len(labels) == len(words)
-        output = [{"word":word,"tag":label,"confidence":confidence} for word,(label,confidence) in zip(words,labels)]
-        return output
-
-    def predict_test(self, text: str):
-        input_ids_list, input_mask_list ,segment_ids_list, valid_ids_list = self.preprocess_test(text)
+        input_ids_list, input_mask_list ,segment_ids_list, valid_ids_list = self.preprocess(text)
 
         labels = []
         for i in range(len(input_ids_list)):

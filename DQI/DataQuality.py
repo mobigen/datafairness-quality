@@ -8,7 +8,7 @@ from dateutil.parser import parse
 from transformers import ElectraTokenizer, ElectraForTokenClassification
 from .ner_pipeline import NerPipeline
 from DB.IRISDB import IRISDB
-
+from .bert import Ner
 
 class ColumnStats:
     def __init__(self):
@@ -40,12 +40,14 @@ class DataQuality:
             self._df = pd.DataFrame(select_data, columns=meta)
         self.db_info = db_info
         self.table_stats = {"column_stats": []}
-        self.tokenizer = ElectraTokenizer.from_pretrained(
+        self.ko_tokenizer = ElectraTokenizer.from_pretrained(
             "DQI/koelectra-small-finetuned-naver-ner"
         )
-        self.model = ElectraForTokenClassification.from_pretrained(
+        self.ko_model = ElectraForTokenClassification.from_pretrained(
             "DQI/koelectra-small-finetuned-naver-ner"
         )
+
+        self.eng_model = Ner("DQI/bert_ner")
 
     def set_rule_for_db(self):
         table_list = ["REGEX", "REGEX_SET", "RANGE", "BIN_SET", "UNIQUE_SET"]
@@ -121,15 +123,29 @@ class DataQuality:
             result = regex_compile.fullmatch(data)
         return result
 
-    def predict_ner(self, column, column_name):
+    def predict_ko_ner(self, column):
         ner = NerPipeline(
-            model=self.model, tokenizer=self.tokenizer, ignore_special_tokens=True
+            model=self.ko_model, tokenizer=self.ko_tokenizer, ignore_special_tokens=True
         )
 
-        word_level_answer, ner_stats = ner.data_ner(column, column_name)
+        word_level_answer, ner_stats = ner.data_ner(column)
         return word_level_answer, ner_stats
 
-    def convert_ner(self, ner_entity):
+    def predict_eng_ner(self, column):
+        output = self.eng_model.predict(" ".join(column.tolist()))
+ 
+        ner_stats = {}
+        for res in output:
+            entity = self.convert_eng_ner(res["tag"])
+            if entity == None:
+                continue
+            if entity not in ner_stats:
+                ner_stats[entity] = 0
+            ner_stats[entity] += 1
+        return ner_stats
+        
+
+    def convert_ko_ner(self, ner_entity):
         """
         개체명 범주            태그     정의
         PERSON              PER     실존, 가상 등 인물명에 해당 하는 것
@@ -184,6 +200,31 @@ class DataQuality:
 
         return result
 
+
+    def convert_eng_ner(self, ner_entity):
+        '''
+            O	Outside of a named entity
+            B-MIS	Beginning of a miscellaneous entity right after another miscellaneous entity
+            I-MIS	Miscellaneous entity
+            B-PER	Beginning of a person’s name right after another person’s name
+            I-PER	Person’s name
+            B-ORG	Beginning of an organization right after another organization
+            I-ORG	organization
+            B-LOC	Beginning of a location right after another location
+            I-LOC	Location
+        '''
+        result = None
+        if "PER" in ner_entity:
+            result = "PERSON"
+        elif "MIS" in ner_entity:
+            result = "MIS"
+        elif "ORG" in ner_entity:
+            result = "ORGANIZATION"
+        elif "LOC" in ner_entity:
+            result = "LOCATION"
+
+        return result
+
     def get_ner(self, col_stats, column, column_name, text_kor_set):
         f_text_kor = 0
         for pattern in col_stats.pattern_stats.keys():
@@ -192,15 +233,26 @@ class DataQuality:
                 break
         ner = None
         if f_text_kor == 1 or col_stats.column_type == "NUMBER":
-            print("GET NER ({})".format(column_name))
-            _, stats = self.predict_ner(column, column_name)
-            if len(stats[column_name]) == 0:
+            print("GET ko NER ({})".format(column_name))
+            _, stats = self.predict_ko_ner(column)
+            #if len(stats[column_name]) == 0:
+            if len(stats) == 0:
                 pass
             else:
                 mod_ner = sorted(
-                    stats[column_name].items(), key=operator.itemgetter(1), reverse=True
+                    stats.items(), key=operator.itemgetter(1), reverse=True
                 )[0][0]
-                ner = self.convert_ner(mod_ner)
+                ner = self.convert_ko_ner(mod_ner)
+        else:
+            print("GET eng NER ({})".format(column_name))
+            stats = self.predict_eng_ner(column)
+            if len(stats) == 0:
+                pass
+            else:
+                mod_ner = sorted(
+                    stats.items(), key=operator.itemgetter(1), reverse=True
+                )[0][0]
+                ner = self.convert_eng_ner(mod_ner)
         return ner
 
     def cal_row_missing_rate(self):
