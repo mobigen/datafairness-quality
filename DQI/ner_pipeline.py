@@ -183,8 +183,8 @@ class NerPipeline(Pipeline):
         self.ignore_labels = ignore_labels
         self.ignore_special_tokens = ignore_special_tokens
 
-    def data_ner(self, column, name):
-        ner_stats = {name: {}}
+    def data_ner(self, column):
+        ner_stats = {}
         # Manage correct placement of the tensors
         with self.device_placement():
             # [FIX] Split token by word-level
@@ -227,14 +227,12 @@ class NerPipeline(Pipeline):
         for mask, ans in zip(tokens_mask, token_level_answer):
             if mask == 1:
                 word = words[word_idx]
-                ans["col_name"] = name
                 ans["word"] = word
                 word_idx += 1
                 if ans["entity"] not in self.ignore_labels:
                     word_level_answer.append(ans)
-
-                    if ans["entity"] not in ner_stats[name]:
-                        ner_stats[name][ans["entity"]] = 0
-                    ner_stats[name][ans["entity"]] += 1
+                    if ans["entity"] not in ner_stats:
+                        ner_stats[ans["entity"]] = 0
+                    ner_stats[ans["entity"]] += 1
 
         return word_level_answer, ner_stats
