@@ -1,0 +1,23 @@
+functions:
+  data-quality-index:
+    runtime: python3
+    desc: ""
+    maintainer: ""
+    handler:
+      dir: ./src
+      file: handler.py
+      name: Handler
+    docker_registry: 211.232.115.85:5000
+    image: 211.232.115.85:5000/data-quality-index
+    constraints:
+    - nodetype=cpunode
+    limits:
+      memory: ""
+      cpu: ""
+      gpu: ""
+    requests:
+      memory: 50Mi
+      cpu: 50m
+      gpu: ""
+openfx:
+  gateway: 192.168.101.112:31113

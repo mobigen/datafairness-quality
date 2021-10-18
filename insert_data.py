@@ -33,7 +33,7 @@ company_fields = [
     "ACC_MT",
 ]
 company_data = (
-    "/Users/cbc/DEV/Mobigen/datafairness-quality/sample_data/company_5000.csv"
+    "/Users/cbc/DEV/Mobigen/datafairness-quality/sample_data/company_1000.csv"
 )
 
 
@@ -81,7 +81,7 @@ movies_data = "/Users/cbc/DEV/Mobigen/datafairness-quality/sample_data/movies.cs
 
 data_list = {
     "company": {
-        "table_name": "DQI_COMPANY_5000",
+        "table_name": "DQI_FOR_OFFICIAL_TEST",
         "fields": company_fields,
         "data": company_data,
     },
