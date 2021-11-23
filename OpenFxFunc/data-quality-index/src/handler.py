@@ -3,6 +3,7 @@ from numpyencoder import NumpyEncoder
 import json
 import time
 
+
 def Handler(req):
     start = time.time()
     iris_info = {
@@ -22,12 +23,14 @@ def Handler(req):
         elif mode == "correction":
             column_name = recv_msg["column_name"]
             correction = recv_msg["correction"]
-            data_dqi = auto.data_quality_correction(column_name, correction, "row_delete")
-        result = {"result" : "SUCCESS", "data_dqi" : data_dqi}
+
+            data_dqi = auto.data_quality_correction(column_name, correction,
+                                                    "row_delete")
+        result = {"result": "SUCCESS", "data_dqi": data_dqi}
         print(json.dumps(result, indent=3, cls=NumpyEncoder))
     except Exception as err:
-        result = {"result" : "FAIL", "reason" : "{}".format(err)}
+        result = {"result": "FAIL", "reason": "{}".format(err)}
         print(json.dumps(result, indent=3, cls=NumpyEncoder))
     print("elapsed time : {}".format(time.time() - start))
-    return str.encode(json.dumps(result, indent=3, ensure_ascii=False, cls=NumpyEncoder))
-
+    return str.encode(
+        json.dumps(result, indent=3, ensure_ascii=False, cls=NumpyEncoder))

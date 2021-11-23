@@ -11,7 +11,7 @@ class RuleDataQuality(DataQuality):
     def set_rule(self, regex_set, rules):
         column_rule = {}
 
-        for rule in rules["rules"]:
+        for rule in rules:
             column_name = rule["column"]
             set_name = rule["rule"]
 
@@ -53,10 +53,11 @@ class RuleDataQuality(DataQuality):
 
     def check_pattern(self, column, column_name, column_rule, regex_set, regex_compile):
         pattern_stats = {}
+        unknown = 0
         set_name = column_rule[column_name]
 
         if set_name == "STATS":
-            return pattern_stats
+            return pattern_stats, unknown
 
         for pattern_name in regex_set[set_name]:
             pattern_stats[pattern_name] = 0
@@ -64,6 +65,8 @@ class RuleDataQuality(DataQuality):
         for data in column:
             if data == None:
                 continue
+
+            f_match = 0
             for pattern_name in regex_set[set_name]:
                 result = self.regex_match(
                     pattern_name, regex_compile[pattern_name], data
@@ -72,14 +75,26 @@ class RuleDataQuality(DataQuality):
                     if self.check_valid(pattern_name, data) == False:
                         continue
                     pattern_stats[pattern_name] += 1
+                    f_match = 1
 
-        return pattern_stats
+            if f_match == 0:
+                unknown += 1
+
+        return pattern_stats, unknown
 
     def calc_col_dqi(self, column, col_stats, unique_regex, bin_regex, range_info):
         data_dqi = {}
 
         data_dqi["missing_rate"] = self.calc_missing_rate(
             col_stats.missing_count, col_stats.row_count
+        )
+        
+        max_type_cnt = sorted(
+            col_stats.type_stats.items(), key=lambda x: x[1], reverse=True
+        )[0][1]
+
+        data_dqi["type_missmatch_rate"] = self.calc_violation_rate(
+            max_type_cnt, col_stats.row_count
         )
 
         if (
@@ -92,32 +107,22 @@ class RuleDataQuality(DataQuality):
             col_stats.pattern_stats.items(), key=lambda x: x[1], reverse=True
         )[0][1]
 
-        max_type_cnt = sorted(
-            col_stats.type_stats.items(), key=lambda x: x[1], reverse=True
-        )[0][1]
-
-        data_dqi["type_missmatch_rate"] = self.calc_violation_rate(
-            max_type_cnt, col_stats.row_count
-        )
-
-        sum_match_cnt = 0
+        regex_set_sum = 0
         for match_cnt in col_stats.pattern_stats.values():
-            sum_match_cnt += match_cnt
+            regex_set_sum += match_cnt
 
         data_dqi["pattern_mismatch_rate"] = self.calc_violation_rate(
-            sum_match_cnt, col_stats.row_count
+            max_pattern_cnt, col_stats.row_count
         )
 
         data_dqi["consistency_violation_rate"] = self.calc_violation_rate(
-            max_pattern_cnt, sum_match_cnt
+            max_pattern_cnt, regex_set_sum
         )
 
         data_dqi["outlier_ratio"] = self.calc_outlier_ratio(col_stats, column)
 
         if col_stats.column_pattern in unique_regex:
-            data_dqi["uniqueness_violation_rate"] = self.calc_uniqueness_violation_rate(
-                col_stats.row_count, col_stats.unique_stats
-            )
+            data_dqi["uniqueness_violation_rate"] = self.calc_uniqueness_violation_rate(col_stats)
 
         if col_stats.column_pattern in range_info:
             data_dqi["range_violation_rate"] = self.calc_violation_rate(
@@ -126,12 +131,12 @@ class RuleDataQuality(DataQuality):
 
         if col_stats.column_pattern in bin_regex:
             data_dqi["binary_violation_rate"] = self.calc_violation_rate(
-                max_pattern_cnt, col_stats.row_count
+                max_pattern_cnt, regex_set_sum
             )
 
         return data_dqi
 
-    def evaluation(self, rules):
+    def evaluation(self, rules, f_ner="off"):
         table_dqi = {}
         (
             regex_compile,
@@ -150,7 +155,9 @@ class RuleDataQuality(DataQuality):
             col_stats.column_name = column_name
             col_stats.column_pattern = column_rule[column_name]
             col_stats.row_count = len(self._df[column_name])
-            
+
+            print("\n[column name] : {}".format(column_name))
+
             self._df[column_name] = self._df[column_name].replace(
                 r"^\s*$", np.NaN, regex=True
             )
@@ -164,7 +171,7 @@ class RuleDataQuality(DataQuality):
                     column, col_stats.column_pattern, range_info
                 )
             else:
-                col_stats.pattern_stats = self.check_pattern(
+                col_stats.pattern_stats, col_stats.unknown = self.check_pattern(
                     column, column_name, column_rule, regex_set, regex_compile
                 )
 
@@ -179,8 +186,10 @@ class RuleDataQuality(DataQuality):
 
             column = column[column != None]
 
-            if col_stats.column_pattern != "STATS":
-                col_stats.ner = self.get_ner(col_stats, column, column_name, regex_set["TEXT_KOR"])
+            if col_stats.column_pattern != "STATS" and f_ner == "on":
+                col_stats.ner = self.get_ner(
+                    col_stats, column, column_name, regex_set["TEXT_KOR"]
+                )
 
             (
                 col_stats.number_stats,
@@ -206,10 +215,12 @@ class RuleDataQuality(DataQuality):
                 if key not in table_dqi:
                     table_dqi[key] = 0
                 table_dqi[key] += value
+                column_info["column_dqi"][key] = "{:.3f} %".format(value)
+
 
         column_cnt = len(self.table_stats["column_stats"])
         for key, value in table_dqi.items():
-            table_dqi[key] = value / column_cnt
+            table_dqi[key] =  "{:.3f} %".format(value / column_cnt)
 
         self.table_stats["table_dqi"] = table_dqi
 

@@ -18,11 +18,11 @@ RUN mkdir -p ${HANDLER_DIR}
 WORKDIR ${HANDLER_DIR}
 COPY ./requirements.txt .
 RUN pip3 install -r requirements.txt
-RUN pip3 install numpyencoder 
 
-COPY ./src/handler.py .
 COPY ./src/DB ./DB/
 COPY ./src/DQI ./DQI/
+COPY ./src/nltk_data /root/nltk_data
+COPY ./src/handler.py .
 RUN touch ${HANDLER_DIR}/__init__.py
 
 RUN cp -r /openfx/executor/* ${HANDLER_DIR}
