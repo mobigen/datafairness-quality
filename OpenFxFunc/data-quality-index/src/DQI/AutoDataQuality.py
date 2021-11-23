@@ -5,6 +5,7 @@ import operator
 import numpy as np
 from pprint import pprint
 
+
 class AutoDataQuality(DataQuality):
     def __init__(self, file_path=None, db_info=None, table_name=None):
         super().__init__(file_path, db_info, table_name)
@@ -34,9 +35,9 @@ class AutoDataQuality(DataQuality):
                 unknown += 1
 
         if len(pattern_stats) != 0:
-            column_pattern = sorted(
-                pattern_stats.items(), key=operator.itemgetter(1), reverse=True
-            )[0][0]
+            column_pattern = sorted(pattern_stats.items(),
+                                    key=operator.itemgetter(1),
+                                    reverse=True)[0][0]
 
             for set_name, pattern_list in regex_set.items():
                 if column_pattern in pattern_list:
@@ -49,18 +50,15 @@ class AutoDataQuality(DataQuality):
         data_dqi = {}
 
         data_dqi["completeness"] = 100 - self.calc_missing_rate(
-            col_stats.missing_count, col_stats.row_count
-        )
+            col_stats.missing_count, col_stats.row_count)
 
-        if (
-            col_stats.missing_count == col_stats.row_count
-            or col_stats.column_pattern == None
-        ):
+        if (col_stats.missing_count == col_stats.row_count
+                or col_stats.column_pattern == None):
             return data_dqi
 
-        max_pattern_cnt = sorted(
-            col_stats.pattern_stats.items(), key=lambda x: x[1], reverse=True
-        )[0][1]
+        max_pattern_cnt = sorted(col_stats.pattern_stats.items(),
+                                 key=lambda x: x[1],
+                                 reverse=True)[0][1]
 
         regex_set_sum = 0
         for pattern, match_cnt in col_stats.pattern_stats.items():
@@ -68,13 +66,11 @@ class AutoDataQuality(DataQuality):
                 regex_set_sum += match_cnt
 
         data_dqi["consistency"] = 100 - self.calc_violation_rate(
-            max_pattern_cnt, col_stats.row_count
-        )
+            max_pattern_cnt, col_stats.row_count)
 
         if col_stats.column_pattern in unique_regex:
             data_dqi["uniqueness"] = 100 - self.calc_uniqueness_violation_rate(
-                col_stats
-            )
+                col_stats)
 
         return data_dqi
 
@@ -95,13 +91,12 @@ class AutoDataQuality(DataQuality):
 
             print("\n[column name] : {}".format(column_name))
 
-            self._df[column_name] = self._df[column_name].replace(
-                r"^\s*$", np.NaN, regex=True
-            )
+            self._df[column_name] = self._df[column_name].replace(r"^\s*$",
+                                                                  np.NaN,
+                                                                  regex=True)
 
-            column = np.where(
-                self._df[column_name].isnull(), None, self._df[column_name]
-            )
+            column = np.where(self._df[column_name].isnull(), None,
+                              self._df[column_name])
 
             (
                 col_stats.column_pattern,
@@ -127,15 +122,15 @@ class AutoDataQuality(DataQuality):
                 col_stats.quartile_stats,
             ) = self.calc_statistics(col_stats.column_type, quartile, column)
 
-            time_distribution = self.get_time_distribution(self._df, column_name)
+            time_distribution = self.get_time_distribution(
+                self._df, column_name)
             if time_distribution != None:
                 col_stats.time_distribution = time_distribution
 
             column_info = self.make_col_info(col_stats)
 
             column_info["column_dqi"] = self.calc_col_dqi(
-                col_stats, regex_set, unique_regex
-            )
+                col_stats, regex_set, unique_regex)
 
             self.table_stats["column_stats"].append(column_info)
 
@@ -152,7 +147,8 @@ class AutoDataQuality(DataQuality):
 
         return self.table_stats
 
-    def check_pattern_for_official_test(self, column, regex_set, regex_compile):
+    def check_pattern_for_official_test(self, column, regex_set,
+                                        regex_compile):
         pattern_stats = {}
         column_pattern = None
         column_pattern_index = {}
@@ -182,9 +178,9 @@ class AutoDataQuality(DataQuality):
 
         mod_pattern_name = None
         if len(pattern_stats) != 0:
-            column_pattern = sorted(
-                pattern_stats.items(), key=operator.itemgetter(1), reverse=True
-            )[0][0]
+            column_pattern = sorted(pattern_stats.items(),
+                                    key=operator.itemgetter(1),
+                                    reverse=True)[0][0]
 
             mod_pattern_name = column_pattern
 
@@ -200,7 +196,8 @@ class AutoDataQuality(DataQuality):
             column_pattern_index[mod_pattern_name],
         )
 
-    def data_correction(self, column_name, column_pattern_index, duplicate_list, dqi, correction):
+    def data_correction(self, column_name, column_pattern_index,
+                        duplicate_list, dqi, correction):
         delete_row_index = []
         if dqi == "consistency":
             for index, _ in self._df.iterrows():
@@ -213,9 +210,9 @@ class AutoDataQuality(DataQuality):
         elif dqi == "completeness":
             if correction == "row_delete":
                 self._df[column_name] = self._df[column_name].replace(
-                    r"^\s*$", np.NaN, regex=True
-                )
-                column = np.where(self._df[column_name].isnull(), None, self._df[column_name])
+                    r"^\s*$", np.NaN, regex=True)
+                column = np.where(self._df[column_name].isnull(), None,
+                                  self._df[column_name])
                 for index, data in enumerate(column):
                     if data == None:
                         delete_row_index.append(index)
@@ -233,39 +230,35 @@ class AutoDataQuality(DataQuality):
 
     def cal_col_dqi_for_official_test(self, col_stats, unique_regex, dqi):
         data_dqi = {}
-        if (
-            col_stats.missing_count == col_stats.row_count
-            or col_stats.column_pattern == None
-        ):
+        if (col_stats.missing_count == col_stats.row_count
+                or col_stats.column_pattern == None):
             return data_dqi
 
         if dqi == "completeness":
             data_dqi[dqi] = "{:.3f} %".format(100 - self.calc_missing_rate(
-                col_stats.missing_count, col_stats.row_count
-            ))
+                col_stats.missing_count, col_stats.row_count))
         elif dqi == "consistency":
-            max_pattern_cnt = sorted(
-                col_stats.pattern_stats.items(), key=lambda x: x[1], reverse=True
-            )[0][1]
+            max_pattern_cnt = sorted(col_stats.pattern_stats.items(),
+                                     key=lambda x: x[1],
+                                     reverse=True)[0][1]
 
-            data_dqi[dqi] = "{:.3f} %".format(100 - self.calc_violation_rate(
-                max_pattern_cnt, col_stats.row_count
-            ))
+            data_dqi[dqi] = "{:.3f} %".format(
+                100 -
+                self.calc_violation_rate(max_pattern_cnt, col_stats.row_count))
         elif dqi == "uniqueness":
             if col_stats.column_pattern in unique_regex:
-                data_dqi[dqi] = "{:.3f} %".format(100 - self.calc_uniqueness_violation_rate(
-                    col_stats
-                ))
+                data_dqi[dqi] = "{:.3f} %".format(
+                    100 - self.calc_uniqueness_violation_rate(col_stats))
 
         return data_dqi
 
-    def dqi_eval(
-        self, column_name, regex_compile, regex_set, unique_regex, step, dqi
-    ):
-        self._df[column_name] = self._df[column_name].replace(
-            r"^\s*$", np.NaN, regex=True
-        )
-        column = np.where(self._df[column_name].isnull(), None, self._df[column_name])
+    def dqi_eval(self, column_name, regex_compile, regex_set, unique_regex,
+                 step, dqi):
+        self._df[column_name] = self._df[column_name].replace(r"^\s*$",
+                                                              np.NaN,
+                                                              regex=True)
+        column = np.where(self._df[column_name].isnull(), None,
+                          self._df[column_name])
 
         col_stats = ColumnStats()
         col_stats.column_name = column_name
@@ -276,7 +269,8 @@ class AutoDataQuality(DataQuality):
             col_stats.pattern_stats,
             col_stats.unknown,
             column_pattern_index,
-        ) = self.check_pattern_for_official_test(column, regex_set, regex_compile)
+        ) = self.check_pattern_for_official_test(column, regex_set,
+                                                 regex_compile)
 
         (
             col_stats.column_type,
@@ -303,8 +297,7 @@ class AutoDataQuality(DataQuality):
         column_info = self.make_col_info(col_stats)
 
         column_info["column_dqi"] = self.cal_col_dqi_for_official_test(
-            col_stats, unique_regex, dqi
-        )
+            col_stats, unique_regex, dqi)
 
         self.correction_stat[step] = column_info
 
@@ -320,17 +313,16 @@ class AutoDataQuality(DataQuality):
         ) = self.set_rule_for_db()
 
         col_stats, column_pattern_index = self.dqi_eval(
-            column_name, regex_compile, regex_set, unique_regex, "before", dqi
-        )
+            column_name, regex_compile, regex_set, unique_regex, "before", dqi)
 
         duplicate_list = []
         for key, value in col_stats.unique_stats.items():
             if value > 1:
                 duplicate_list.append(key)
 
-        self.data_correction(column_name, column_pattern_index, duplicate_list, dqi, correction)
+        self.data_correction(column_name, column_pattern_index, duplicate_list,
+                             dqi, correction)
 
-        col_stats, _ = self.dqi_eval(
-            column_name, regex_compile, regex_set, unique_regex, "after", dqi
-        )
+        col_stats, _ = self.dqi_eval(column_name, regex_compile, regex_set,
+                                     unique_regex, "after", dqi)
         return self.correction_stat

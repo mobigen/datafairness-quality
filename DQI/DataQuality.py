@@ -10,6 +10,7 @@ from .ner_pipeline import NerPipeline
 from DB.IRISDB import IRISDB
 from .bert import Ner
 
+
 class ColumnStats:
     def __init__(self):
         self.column_name = None
@@ -41,11 +42,9 @@ class DataQuality:
         self.db_info = db_info
         self.table_stats = {"column_stats": []}
         self.ko_tokenizer = ElectraTokenizer.from_pretrained(
-            "DQI/koelectra-small-finetuned-naver-ner"
-        )
+            "DQI/koelectra-small-finetuned-naver-ner")
         self.ko_model = ElectraForTokenClassification.from_pretrained(
-            "DQI/koelectra-small-finetuned-naver-ner"
-        )
+            "DQI/koelectra-small-finetuned-naver-ner")
 
         self.eng_model = Ner("DQI/bert_ner")
 
@@ -69,7 +68,10 @@ class DataQuality:
                     regex_set[data[0]] = data[1].split(",")
                 elif table_name == "RANGE":
                     range = data[1].split(",")
-                    range_info[data[0]] = {"min": int(range[0]), "max": int(range[1])}
+                    range_info[data[0]] = {
+                        "min": int(range[0]),
+                        "max": int(range[1])
+                    }
                 elif table_name == "BIN_SET":
                     bin_regex = data[0].split(",")
                 elif table_name == "UNIQUE_SET":
@@ -112,28 +114,24 @@ class DataQuality:
         return regex_compile, regex_set, unique_regex, bin_regex, range_info
 
     def regex_match(self, regex_key, regex_compile, data):
-        if (
-            regex_key == "ADDRESS"
-            or regex_key == "URL"
-            or regex_key == "TEXT_KOR"
-            or regex_key == "TEXT_ENG"
-        ):
+        if (regex_key == "ADDRESS" or regex_key == "URL"
+                or regex_key == "TEXT_KOR" or regex_key == "TEXT_ENG"):
             result = regex_compile.search(data)
         else:
             result = regex_compile.fullmatch(data)
         return result
 
     def predict_ko_ner(self, column):
-        ner = NerPipeline(
-            model=self.ko_model, tokenizer=self.ko_tokenizer, ignore_special_tokens=True
-        )
+        ner = NerPipeline(model=self.ko_model,
+                          tokenizer=self.ko_tokenizer,
+                          ignore_special_tokens=True)
 
         word_level_answer, ner_stats = ner.data_ner(column)
         return word_level_answer, ner_stats
 
     def predict_eng_ner(self, column):
         output = self.eng_model.predict(" ".join(column.tolist()))
- 
+
         ner_stats = {}
         for res in output:
             entity = self.convert_eng_ner(res["tag"])
@@ -143,7 +141,6 @@ class DataQuality:
                 ner_stats[entity] = 0
             ner_stats[entity] += 1
         return ner_stats
-        
 
     def convert_ko_ner(self, ner_entity):
         """
@@ -200,7 +197,6 @@ class DataQuality:
 
         return result
 
-
     def convert_eng_ner(self, ner_entity):
         '''
             O	Outside of a named entity
@@ -239,9 +235,9 @@ class DataQuality:
             if len(stats) == 0:
                 pass
             else:
-                mod_ner = sorted(
-                    stats.items(), key=operator.itemgetter(1), reverse=True
-                )[0][0]
+                mod_ner = sorted(stats.items(),
+                                 key=operator.itemgetter(1),
+                                 reverse=True)[0][0]
                 ner = self.convert_ko_ner(mod_ner)
         else:
             print("GET eng NER ({})".format(column_name))
@@ -249,9 +245,9 @@ class DataQuality:
             if len(stats) == 0:
                 pass
             else:
-                mod_ner = sorted(
-                    stats.items(), key=operator.itemgetter(1), reverse=True
-                )[0][0]
+                mod_ner = sorted(stats.items(),
+                                 key=operator.itemgetter(1),
+                                 reverse=True)[0][0]
                 ner = self.convert_eng_ner(mod_ner)
         return ner
 
@@ -365,6 +361,7 @@ class DataQuality:
         time_offset
         "Y" : year, "M" : month, "W" : week, "D" : day, "H" : hour, "T" : minute
     """
+
     def get_time_distribution(self, df, column_name, time_offset="Y"):
         time_distribution = {}
         try:
@@ -395,9 +392,8 @@ class DataQuality:
         group_col = column_df["col"].groupby(quantile_data)
 
         for key, value in group_col.count().items():
-            quartile_stats[
-                key.__str__().replace(",", " ~").replace("]", "").replace("(", "")
-            ] = value
+            quartile_stats[key.__str__().replace(",", " ~").replace(
+                "]", "").replace("(", "")] = value
 
         return quartile_stats
 
@@ -431,9 +427,8 @@ class DataQuality:
                 string_stats["std"] = round(np.std(len_list), 5)
                 string_stats["median"] = round(np.median(len_list), 5)
 
-            common_stats["mode"][Counter(column).most_common()[0][0]] = Counter(
-                column
-            ).most_common()[0][1]
+            common_stats["mode"][Counter(column).most_common()[0]
+                                 [0]] = Counter(column).most_common()[0][1]
 
         return number_stats, string_stats, common_stats, quartile_stats
 
@@ -453,21 +448,17 @@ class DataQuality:
         outlier_cnt = 0
         if col_stats.column_type == "NUMBER":
             outlier_min = col_stats.number_stats["mean"] - (
-                3 * col_stats.number_stats["std"]
-            )
+                3 * col_stats.number_stats["std"])
             outlier_max = col_stats.number_stats["mean"] + (
-                3 * col_stats.number_stats["std"]
-            )
+                3 * col_stats.number_stats["std"])
             for data in column:
                 if float(data) < outlier_min or outlier_max < float(data):
                     outlier_cnt += 1
         elif col_stats.column_type == "STRING":
             outlier_min = col_stats.string_stats["mean"] - (
-                3 * col_stats.string_stats["std"]
-            )
+                3 * col_stats.string_stats["std"])
             outlier_max = col_stats.string_stats["mean"] + (
-                3 * col_stats.string_stats["std"]
-            )
+                3 * col_stats.string_stats["std"])
             for data in column:
                 if len(data) < outlier_min or outlier_max < len(data):
                     outlier_cnt += 1
@@ -511,12 +502,12 @@ class DataQuality:
         column_info["row_count"] = col_stats.row_count
         column_info["missing_count"] = col_stats.missing_count
 
-        sort_pattern = sorted(
-            col_stats.pattern_stats.items(), key=lambda x: x[1], reverse=True
-        )
-        sort_type = sorted(
-            col_stats.type_stats.items(), key=lambda x: x[1], reverse=True
-        )
+        sort_pattern = sorted(col_stats.pattern_stats.items(),
+                              key=lambda x: x[1],
+                              reverse=True)
+        sort_type = sorted(col_stats.type_stats.items(),
+                           key=lambda x: x[1],
+                           reverse=True)
 
         column_info["pattern"] = {
             sort_pattern[index][0]: "{} ({:.3f}%)".format(
@@ -550,7 +541,8 @@ class DataQuality:
                 "std": col_stats.number_stats["std"],
                 "median": col_stats.number_stats["median"],
                 "quartile": {
-                    key: value for key, value in col_stats.quartile_stats.items()
+                    key: value
+                    for key, value in col_stats.quartile_stats.items()
                 },
             }
 
