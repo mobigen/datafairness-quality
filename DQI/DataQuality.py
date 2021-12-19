@@ -35,12 +35,14 @@ class DataQuality:
         if file_path != None:
             self._df = pd.read_csv(file_path, header=0, dtype=str)
         if table_name != None:
-            iris = IRISDB(db_info)
-            iris.connect_db()
-            meta, select_data = iris.select_query(table_name)
-            self._df = pd.DataFrame(select_data, columns=meta)
+            self.iris = IRISDB(db_info)
+            self.iris.connect_db()
+            self.meta, select_data = self.iris.select_query(table_name)
+            self._df = pd.DataFrame(select_data, columns=self.meta)
         self.db_info = db_info
+        self.table_name = table_name
         self.table_stats = {"column_stats": []}
+
         self.ko_tokenizer = ElectraTokenizer.from_pretrained(
             "DQI/koelectra-small-finetuned-naver-ner")
         self.ko_model = ElectraForTokenClassification.from_pretrained(
