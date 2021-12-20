@@ -1,6 +1,5 @@
 from .DataQuality import DataQuality
 import numpy as np
-from pprint import pprint
 
 
 class Correction(DataQuality):
@@ -33,7 +32,6 @@ class Correction(DataQuality):
                            key=lambda x: x[1],
                            reverse=True)[0][0]
 
-        pprint(mode_data)
         print(correction_list, len(correction_list))
 
         for index in correction_list:
@@ -63,7 +61,6 @@ class Correction(DataQuality):
         mode_data = sorted(match_data.items(),
                            key=lambda x: x[1],
                            reverse=True)[0][0]
-        pprint(mode_data)
         print(correction_list, len(correction_list))
 
         for index in correction_list:
@@ -86,9 +83,9 @@ class Correction(DataQuality):
                            key=lambda x: x[1],
                            reverse=True)[0][0]
 
-        pprint(mode_data)
         print(correction_list, len(correction_list))
 
+        print(correction)
         if correction == "delete":
             print("delete")
             self._df = self._df.drop(index=correction_list, axis=0)
@@ -133,35 +130,22 @@ class Correction(DataQuality):
                                          self._df[column_name])
 
         if data_index == "pattern_mismatch_rate":
-            pprint("column pattern : {}".format(column_pattern))
+            print("column pattern : {}".format(column_pattern))
 
-            pprint("Before[{}] : {}".format(len(self._df[column_name]),
-                                            self._df[column_name]))
 
             self.correction_pattern(column_name, regex_set, regex_compile,
                                     column_pattern)
 
-            pprint("After[{}] : {}".format(len(self._df[column_name]),
-                                           self._df[column_name]))
 
         elif data_index == "type_missmatch_rate":
-            pprint("column type : {}".format(column_type))
-
-            pprint("Before[{}] : {}".format(len(self._df[column_name]),
-                                            self._df[column_name]))
+            print("column type : {}".format(column_type))
 
             self.correction_type(column_name, column_type)
 
-            pprint("After[{}] : {}".format(len(self._df[column_name]),
-                                           self._df[column_name]))
 
         elif data_index == "missing_rate":
-            pprint("Before[{}] : {}".format(len(self._df[column_name]),
-                                            self._df[column_name]))
             self.correction_missing_value(column_name, correction)
 
-            pprint("Before[{}] : {}".format(len(self._df[column_name]),
-                                            self._df[column_name]))
         # drop table
         self.iris.drop_table(table_name)
         # make & insert table

@@ -1,0 +1,7 @@
+torch==1.2.0
+transformers==3.0.2
+pandas
+numpyencoder
+nltk==3.4.5
+pytorch-transformers==1.2.0 
+
