@@ -61,14 +61,15 @@ def dqi_test():
         "DB_NAME": "FAIR",
     }
     # result = get_column_name(db_info=iris_info, table_name="DQI_MOVIES")
-    # result = auto_dqi(db_info=iris_info, table_name="DQI_FOR_OFFICIAL_TEST")
+    result = auto_dqi(db_info=iris_info,
+                      table_name="PATTERN_JURIR_NO_DQI_FOR_OFFICIAL_TEST")
     # result = auto_dqi(file_path=file_path, db_info=iris_info)
 
     # result = rule_dqi(file_path=file_path, db_info=iris_info)
     # result = rule_dqi(db_info=iris_info, table_name="DQI_COMPANY_5000")
-    # print(json.dumps(result, indent=3, ensure_ascii=False, cls=NumpyEncoder))
+    print(json.dumps(result, indent=3, ensure_ascii=False, cls=NumpyEncoder))
 
-    data_correction(db_info=iris_info, table_name="DQI_FOR_OFFICIAL_TEST")
+    #data_correction(db_info=iris_info, table_name="DQI_FOR_OFFICIAL_TEST")
 
 
 import time
