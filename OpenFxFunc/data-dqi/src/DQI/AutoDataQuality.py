@@ -73,7 +73,7 @@ class AutoDataQuality(DataQuality):
             if pattern in regex_set[col_stats.column_pattern]:
                 regex_set_sum += match_cnt
 
-        data_dqi["pattern_mismatch_rate"] = self.calc_violation_rate(
+        data_dqi["pattern_missmatch_rate"] = self.calc_violation_rate(
             max_pattern_cnt, col_stats.row_count
         )
 

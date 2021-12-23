@@ -21,8 +21,8 @@ def Handler(req):
     print("data_index : {}\ntable_name : {}\ncorrection : {}\ncolumn_name : {}\ncolumn_pattern : {}\ncolumn_type : {}".format(data_index, table_name, correction, column_name, column_pattern, column_type))
     try:
         correcte = Correction(None, iris_info, table_name)
-        table_name = correcte.run_correction(table_name, column_name, data_index, correction, column_pattern, column_type)
-        result = {"result": "SUCCESS", "correction_table_name" : table_name}
+        table_name, correction_cnt = correcte.run_correction(table_name, column_name, data_index, correction, column_pattern, column_type)
+        result = {"result": "SUCCESS", "correction_count" : correction_cnt, "correction_table_name" : table_name}
         print(json.dumps(result, indent=3, cls=NumpyEncoder))
     except Exception as err:
         result = {"result" : "FAIL", "reason" : "{}".format(err)}

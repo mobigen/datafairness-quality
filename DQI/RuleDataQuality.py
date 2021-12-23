@@ -108,7 +108,7 @@ class RuleDataQuality(DataQuality):
         for match_cnt in col_stats.pattern_stats.values():
             regex_set_sum += match_cnt
 
-        data_dqi["pattern_mismatch_rate"] = self.calc_violation_rate(
+        data_dqi["pattern_missmatch_rate"] = self.calc_violation_rate(
             max_pattern_cnt, col_stats.row_count)
 
         data_dqi["consistency_violation_rate"] = self.calc_violation_rate(

@@ -39,6 +39,8 @@ class Correction(DataQuality):
         for index in correction_list:
             self._df[column_name][index] = mode_data
 
+        return len(correction_list)
+
     def correction_type(self, column_name, column_type):
         correction_list = []
         match_data = {}
@@ -69,6 +71,8 @@ class Correction(DataQuality):
         for index in correction_list:
             self._df[column_name][index] = mode_data
 
+        return len(correction_list)
+
     def correction_missing_value(self, column_name, correction):
         correction_list = []
         match_data = {}
@@ -97,9 +101,11 @@ class Correction(DataQuality):
             for index in correction_list:
                 self._df[column_name][index] = mode_data
 
+        return len(correction_list)
+
     def make_table_name(self, data_index, column_name):
         table_name = ""
-        if data_index == "pattern_mismatch_rate":
+        if data_index == "pattern_missmatch_rate":
             table_name = "PATTERN_{}_{}".format(column_name, self.table_name)
         elif data_index == "type_missmatch_rate":
             table_name = "TYPE_{}_{}".format(column_name, self.table_name)
@@ -132,14 +138,17 @@ class Correction(DataQuality):
         self._df[column_name] = np.where(self._df[column_name].isnull(), None,
                                          self._df[column_name])
 
-        if data_index == "pattern_mismatch_rate":
+        corretion_cnt = 0
+
+        if data_index == "pattern_missmatch_rate":
             pprint("column pattern : {}".format(column_pattern))
 
             pprint("Before[{}] : {}".format(len(self._df[column_name]),
                                             self._df[column_name]))
 
-            self.correction_pattern(column_name, regex_set, regex_compile,
-                                    column_pattern)
+            corretion_cnt = self.correction_pattern(column_name, regex_set,
+                                                    regex_compile,
+                                                    column_pattern)
 
             pprint("After[{}] : {}".format(len(self._df[column_name]),
                                            self._df[column_name]))
@@ -150,7 +159,7 @@ class Correction(DataQuality):
             pprint("Before[{}] : {}".format(len(self._df[column_name]),
                                             self._df[column_name]))
 
-            self.correction_type(column_name, column_type)
+            corretion_cnt = self.correction_type(column_name, column_type)
 
             pprint("After[{}] : {}".format(len(self._df[column_name]),
                                            self._df[column_name]))
@@ -158,7 +167,8 @@ class Correction(DataQuality):
         elif data_index == "missing_rate":
             pprint("Before[{}] : {}".format(len(self._df[column_name]),
                                             self._df[column_name]))
-            self.correction_missing_value(column_name, correction)
+            corretion_cnt = self.correction_missing_value(
+                column_name, correction)
 
             pprint("Before[{}] : {}".format(len(self._df[column_name]),
                                             self._df[column_name]))
@@ -168,4 +178,4 @@ class Correction(DataQuality):
         self.iris.create_table(table_name, self.meta)
         self.iris.bulk_insert_query(table_name, self.meta, self._df)
 
-        return table_name
+        return table_name, corretion_cnt
