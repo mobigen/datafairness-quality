@@ -31,7 +31,7 @@ def rule_dqi(file_path=None, db_info=None, table_name=None):
 
 def data_correction(file_path=None, db_info=None, table_name=None):
     correction = Correction(file_path, db_info, table_name)
-    #correction.run_correction(table_name, "ACC_MT", "pattern_mismatch_rate",
+    #correction.run_correction(table_name, "ACC_MT", "pattern_missmatch_rate",
     #                          "imputation", "DATETIME", "NUMBER")
     #correction.run_correction(table_name, "HM_URL", "type_missmatch_rate",
     #                          "imputation", "URL", "STRING")
@@ -61,8 +61,7 @@ def dqi_test():
         "DB_NAME": "FAIR",
     }
     # result = get_column_name(db_info=iris_info, table_name="DQI_MOVIES")
-    result = auto_dqi(db_info=iris_info,
-                      table_name="PATTERN_JURIR_NO_DQI_FOR_OFFICIAL_TEST")
+    result = auto_dqi(db_info=iris_info, table_name="COMPANY_INFO")
     # result = auto_dqi(file_path=file_path, db_info=iris_info)
 
     # result = rule_dqi(file_path=file_path, db_info=iris_info)
